@@ -9,8 +9,12 @@ class UsageTracker
     private const OPTION_KEY = 'map_usage_history';
     private const MAX_REGISTROS = 200;
 
-    public function __construct(private OptionsRepository $optionsRepository)
-    {
+    private bool $legacyMigrationChecked = false;
+
+    public function __construct(
+        private OptionsRepository $optionsRepository,
+        private UsageLogRepository $usageLogRepository
+    ) {
     }
 
     /**
@@ -18,20 +22,32 @@ class UsageTracker
      */
     public function getHistorico(?string $inicio, ?string $fim): array
     {
-        $historico = $this->buscarHistoricoCompleto();
-        $inicioTs = $this->normalizarData($inicio, true);
-        $fimTs = $this->normalizarData($fim, false);
+        $resultado = $this->getHistoricoPaginado($inicio, $fim, 1, self::MAX_REGISTROS);
 
-        return array_values(array_filter($historico, static function (array $registro) use ($inicioTs, $fimTs): bool {
-            if ($inicioTs !== null && $registro['timestamp'] < $inicioTs) {
-                return false;
-            }
-            if ($fimTs !== null && $registro['timestamp'] > $fimTs) {
-                return false;
-            }
+        return $resultado['registros'];
+    }
 
-            return true;
-        }));
+    /**
+     * @return array{
+     *     registros: array<int, array{model:string,prompt_tokens:int,completion_tokens:int,total_tokens:int,cost:float,timestamp:int}>,
+     *     total: int,
+     *     total_tokens: int,
+     *     total_custo: float
+     * }
+     */
+    public function getHistoricoPaginado(?string $inicio, ?string $fim, int $pagina, int $porPagina): array
+    {
+        $this->migrarDadosAntigos();
+
+        $registros = $this->usageLogRepository->listar($inicio, $fim, $pagina, $porPagina);
+        $sumario = $this->usageLogRepository->obterSumario($inicio, $fim);
+
+        return [
+            'registros' => $registros,
+            'total' => $sumario['total_registros'],
+            'total_tokens' => $sumario['total_tokens'],
+            'total_custo' => $sumario['total_custo'],
+        ];
     }
 
     public function registrarUso(string $modelo, int $promptTokens, int $completionTokens): void
@@ -51,43 +67,38 @@ class UsageTracker
             'timestamp' => time(),
         ];
 
-        $historico = $this->buscarHistoricoCompleto();
-        array_unshift($historico, $novo);
-        $historico = array_slice($historico, 0, self::MAX_REGISTROS);
-
-        update_option(self::OPTION_KEY, $historico, false);
+        $this->usageLogRepository->registrar(
+            $novo['model'],
+            $novo['prompt_tokens'],
+            $novo['completion_tokens'],
+            $novo['cost'],
+            $novo['timestamp']
+        );
     }
 
-    /**
-     * @return array<int, array{model:string,prompt_tokens:int,completion_tokens:int,total_tokens:int,cost:float,timestamp:int}>
-     */
-    private function buscarHistoricoCompleto(): array
+    public function migrarDadosAntigos(): void
     {
+        if ($this->legacyMigrationChecked) {
+            return;
+        }
+        $this->legacyMigrationChecked = true;
+
         $historico = $this->optionsRepository->getOption(self::OPTION_KEY, []);
-        if (!is_array($historico)) {
-            return [];
+        if (!is_array($historico) || $historico === [] || $this->usageLogRepository->possuiRegistros()) {
+            return;
         }
 
-        return array_values(array_filter($historico, static function ($registro): bool {
+        $registrosValidos = array_values(array_filter($historico, static function ($registro): bool {
             return is_array($registro)
                 && isset($registro['model'], $registro['prompt_tokens'], $registro['completion_tokens'], $registro['total_tokens'], $registro['cost'], $registro['timestamp']);
         }));
-    }
 
-    private function normalizarData(?string $data, bool $inicioDoDia): ?int
-    {
-        if ($data === null || trim($data) === '') {
-            return null;
+        if ($registrosValidos === []) {
+            return;
         }
 
-        $timestamp = strtotime($data);
-        if ($timestamp === false) {
-            return null;
-        }
-
-        $formatado = $inicioDoDia ? '00:00:00' : '23:59:59';
-
-        return (int) strtotime(date('Y-m-d', $timestamp) . ' ' . $formatado);
+        $this->usageLogRepository->migrarRegistros($registrosValidos);
+        $this->optionsRepository->deleteOptions([self::OPTION_KEY]);
     }
 
     private function estimarCusto(string $modelo, int $promptTokens, int $completionTokens): float

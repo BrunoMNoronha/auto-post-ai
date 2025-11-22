@@ -11,6 +11,7 @@ class Container
     private ?HttpClient $httpClient = null;
     private ?ApiKeyProvider $apiKeyProvider = null;
     private ?ContentGenerator $contentGenerator = null;
+    private ?UsageLogRepository $usageLogRepository = null;
     private ?UsageTracker $usageTracker = null;
     private ?ImageGenerator $imageGenerator = null;
     private ?PostPublisher $postPublisher = null;
@@ -18,6 +19,7 @@ class Container
     private ?Settings $settings = null;
     private ?AjaxHandlers $ajaxHandlers = null;
     private ?Scheduler $scheduler = null;
+    private ?Lifecycle $lifecycle = null;
 
     public function getOptionsRepository(): OptionsRepository
     {
@@ -72,10 +74,20 @@ class Container
     public function getUsageTracker(): UsageTracker
     {
         if ($this->usageTracker === null) {
-            $this->usageTracker = new UsageTracker($this->getOptionsRepository());
+            $this->usageTracker = new UsageTracker($this->getOptionsRepository(), $this->getUsageLogRepository());
         }
 
         return $this->usageTracker;
+    }
+
+    public function getUsageLogRepository(): UsageLogRepository
+    {
+        if ($this->usageLogRepository === null) {
+            global $wpdb;
+            $this->usageLogRepository = new UsageLogRepository($wpdb);
+        }
+
+        return $this->usageLogRepository;
     }
 
     public function getImageGenerator(): ImageGenerator
@@ -146,5 +158,18 @@ class Container
         }
 
         return $this->scheduler;
+    }
+
+    public function getLifecycle(): Lifecycle
+    {
+        if ($this->lifecycle === null) {
+            $this->lifecycle = new Lifecycle(
+                $this->getScheduler(),
+                $this->getUsageLogRepository(),
+                $this->getUsageTracker()
+            );
+        }
+
+        return $this->lifecycle;
     }
 }

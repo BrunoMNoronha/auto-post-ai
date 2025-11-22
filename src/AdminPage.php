@@ -190,6 +190,8 @@ class AdminPage
         $periodo = sanitize_text_field($_GET['periodo'] ?? '7');
         $dataInicio = sanitize_text_field($_GET['data_inicio'] ?? '');
         $dataFim = sanitize_text_field($_GET['data_fim'] ?? '');
+        $paginaAtual = max(1, (int) ($_GET['paged'] ?? 1));
+        $porPagina = 20;
 
         $hoje = date('Y-m-d');
         if ($periodo !== 'custom') {
@@ -198,9 +200,12 @@ class AdminPage
             $dataFim = $hoje;
         }
 
-        $historico = $this->usageTracker->getHistorico($dataInicio, $dataFim);
-        $totalTokens = array_sum(array_column($historico, 'total_tokens'));
-        $totalCusto = array_sum(array_column($historico, 'cost'));
+        $resultado = $this->usageTracker->getHistoricoPaginado($dataInicio, $dataFim, $paginaAtual, $porPagina);
+        $historico = $resultado['registros'];
+        $totalTokens = $resultado['total_tokens'];
+        $totalCusto = $resultado['total_custo'];
+        $totalRegistros = $resultado['total'];
+        $totalPaginas = (int) max(1, ceil($totalRegistros / $porPagina));
 
         ?>
         <div class="wrap map-wrap">
@@ -252,7 +257,7 @@ class AdminPage
                     </div>
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
                         <p class="map-label" style="margin-bottom:6px;">Entradas no Período</p>
-                        <div class="map-title" style="font-size:22px;"><?php echo count($historico); ?></div>
+                        <div class="map-title" style="font-size:22px;"><?php echo number_format((int) $totalRegistros); ?></div>
                     </div>
                 </div>
             </div>
@@ -281,11 +286,33 @@ class AdminPage
                                         <div class="map-badge map-badge-muted" style="margin-left:6px;">Geração: <?php echo number_format((int) $registro['completion_tokens']); ?></div>
                                         <div class="map-helper" style="margin-top:4px;">Total: <?php echo number_format((int) $registro['total_tokens']); ?></div>
                                     </td>
-                                    <td>$<?php echo number_format((float) $registro['cost'], 6); ?></td>
-                                </tr>
+                                <td>$<?php echo number_format((float) $registro['cost'], 6); ?></td>
+                            </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    <?php
+                    if ($totalPaginas > 1) {
+                        $links = paginate_links([
+                            'base' => add_query_arg([
+                                'page' => 'auto-post-ai-historico',
+                                'periodo' => $periodo,
+                                'data_inicio' => $dataInicio,
+                                'data_fim' => $dataFim,
+                                'paged' => '%#%',
+                            ]),
+                            'format' => '',
+                            'current' => $paginaAtual,
+                            'total' => $totalPaginas,
+                            'prev_text' => '&laquo; Anterior',
+                            'next_text' => 'Próxima &raquo;',
+                        ]);
+
+                        if ($links) {
+                            echo '<div class="tablenav"><div class="tablenav-pages">' . wp_kses_post($links) . '</div></div>';
+                        }
+                    }
+                    ?>
                 <?php endif; ?>
             </div>
         </div>
