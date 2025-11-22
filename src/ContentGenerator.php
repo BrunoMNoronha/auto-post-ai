@@ -125,14 +125,7 @@ EOD;
         $model = (string) ($decoded['model'] ?? '');
 
         $this->usageTracker->registrarUso($model, $promptTokens, $completionTokens);
-        if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
-            $json = json_decode($matches[0], true);
-            if (is_array($json)) {
-                return $json;
-            }
-        }
-
-        $json = json_decode($content, true);
+        $json = json_decode($this->sanitizarConteudoJson($content), true);
         if ($json === null) {
             return new \WP_Error('json_parse_error', 'JSON inválido.');
         }
@@ -143,5 +136,17 @@ EOD;
     private function normalizarTemperatura(float $valor): float
     {
         return min(2.0, max(0.0, $valor));
+    }
+
+    private function sanitizarConteudoJson(string $content): string
+    {
+        $semCercas = preg_replace('/^```(?:json)?\s*|```$/mi', '', $content) ?? $content;
+        $limpo = trim($semCercas);
+
+        if (preg_match('/\{[\s\S]*?\}/', $limpo, $matches)) {
+            return trim($matches[0]);
+        }
+
+        return $limpo;
     }
 }
