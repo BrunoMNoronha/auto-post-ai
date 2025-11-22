@@ -28,6 +28,11 @@ spl_autoload_register(static function (string $class): void {
 
 $container = new AutoPostAI\Container();
 
+// Em auto-post-ai.php
+add_action('plugins_loaded', function () {
+    load_plugin_textdomain('auto-post-ai', false, dirname(plugin_basename(__FILE__)) . '/languages');
+});
+
 // Hooks principais
 add_action('admin_menu', [$container->getAdminPage(), 'adicionarMenuPrincipal']);
 add_action('admin_init', [$container->getSettings(), 'registrarConfiguracoes']);

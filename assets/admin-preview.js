@@ -1,127 +1,83 @@
 (function($){
     $(document).ready(function(){
-
+        // Configuração de tooltips
         $('#map-generate-preview').attr('title', 'Pré-visualiza o conteúdo manualmente sem acionar a automação.');
-        $('#map-save-draft').attr('title', 'Guarda o conteúdo gerado como rascunho para revisão.');
-        $('#map-publish').attr('title', 'Publica imediatamente o conteúdo aprovado.');
-        $('#map-edit-content').attr('title', 'Abra para ajustar o HTML antes de publicar.');
-
+        
+        // Elementos DOM
         const $previewContainer = $('#map-preview-container');
         const $tabButtons = $previewContainer.find('.map-tab-btn');
         const $tabPanels = $previewContainer.find('.map-tab-panel');
         const $editorBox = $('#map-editor-box');
         const $editorField = $('#map-preview-editor');
 
+        // Helpers
+        const setLoading = ($btn, isLoading, textLoading, textNormal) => {
+            if (isLoading) {
+                $btn.prop('disabled', true).data('orig-text', textNormal).html(
+                    `<span class="dashicons dashicons-update map-spin"></span> ${textLoading}`
+                );
+            } else {
+                $btn.prop('disabled', false).html(textNormal);
+            }
+        };
+
+        // Adiciona CSS de animação dinamicamente (ou adicione ao admin-style.css)
+        $('<style>.map-spin { animation: map-spin 2s infinite linear; display:inline-block; } @keyframes map-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
+
+        // Escapar HTML para segurança
         function escapeHtml(value) {
             return $('<div>').text(value || '').html();
         }
 
+        // Slugify simples
         function slugify(text) {
-            return (text || '').toLowerCase().normalize('NFD').replace(/[^\w\s-]/g, '')
-                .trim().replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+            return (text || '').toLowerCase().normalize('NFD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_-]+/g, '-');
         }
 
-        function buildSerpUrl(title) {
-            const base = (MAP_ADMIN.site_url || window.location.origin || '').replace(/\/$/, '');
-            const slug = slugify(title);
-            return `${base}/${slug || 'artigo'}`;
-        }
-
-        function setPayload(data) {
-            $previewContainer.data('payload', JSON.stringify(data));
-        }
-
-        function getPayload() {
-            const stored = $previewContainer.data('payload');
-            if (!stored) {
-                return null;
-            }
-            try {
-                return JSON.parse(stored);
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function activateTab(tab) {
-            $tabButtons.removeClass('is-active');
-            $tabPanels.removeClass('is-active');
-            $tabButtons.filter(`[data-tab="${tab}"]`).addClass('is-active');
-            $tabPanels.filter(`[data-tab="${tab}"]`).addClass('is-active');
-        }
-
-        function renderTags(tags) {
-            if (!tags || !tags.length) {
-                return '<span class="map-helper">Sem tags sugeridas.</span>';
-            }
-            return tags.map(function(tag){
-                return `<span class="map-chip">${escapeHtml(tag)}</span>`;
-            }).join(' ');
-        }
-
-        function updateCover(imageUrl, imagePrompt, imageError) {
-            const $cover = $('#map-preview-image');
-            if (imageUrl) {
-                $cover.css({
-                    backgroundImage: `url(${imageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    minHeight: '180px'
-                }).html('<span class="map-cover-badge">Imagem sugerida</span>');
-            } else {
-                const errorMessage = imageError ? `Falha ao gerar imagem: ${escapeHtml(imageError)}` : escapeHtml(imagePrompt || 'Use um prompt para gerar a imagem no envio.');
-                $cover.css({ backgroundImage: 'none', minHeight: '180px' })
-                    .html(`<span class="map-cover-badge">Sem imagem gerada</span><span style="margin-left:10px;color:#4b5563;">${errorMessage}</span>`);
-            }
-        }
-
-        function resetEditor() {
-            $editorField.val('');
-            $editorBox.hide();
-        }
-
+        // Lógica de Tabs
         $tabButtons.on('click', function(){
             const tab = $(this).data('tab');
-            activateTab(tab);
+            $tabButtons.removeClass('is-active');
+            $tabPanels.removeClass('is-active');
+            $(this).addClass('is-active');
+            $previewContainer.find(`.map-tab-panel[data-tab="${tab}"]`).addClass('is-active');
         });
 
-        // --- 1. Lógica do Teste de API ---
+        // 1. Teste de API
         $('#map-test-api').on('click', function(){
-            var $btn = $(this);
-            var $msg = $('#map-api-test-msg');
-            var apiKeyInput = $('#map_api_key_input').val();
-
-            $btn.prop('disabled', true).text('Testando...');
+            const $btn = $(this);
+            const $msg = $('#map-api-test-msg');
+            
+            setLoading($btn, true, 'Testando...', 'Testar');
             $msg.text('').removeClass('status-ok status-error');
 
             $.post(MAP_ADMIN.ajax_url, {
                 action: MAP_ADMIN.action_test_api,
                 nonce: MAP_ADMIN.nonce,
-                api_key: apiKeyInput // Envia o que está no input (se vazio, o PHP usa o salvo)
+                api_key: $('#map_api_key_input').val()
             }, function(resp){
-                $btn.prop('disabled', false).text('Testar');
+                setLoading($btn, false, '', 'Testar');
                 if(resp.success) {
                     $msg.text('✔ ' + resp.data).addClass('status-ok');
                 } else {
-                    $msg.text('✖ ' + (resp.data || 'Erro desconhecido')).addClass('status-error');
+                    $msg.text('✖ ' + (resp.data || 'Erro')).addClass('status-error');
                 }
             }).fail(function(){
-                $btn.prop('disabled', false).text('Testar');
-                $msg.text('✖ Falha de conexão Ajax.').addClass('status-error');
+                setLoading($btn, false, '', 'Testar');
+                $msg.text('✖ Erro de conexão.').addClass('status-error');
             });
         });
 
-        // --- 2. Lógica de Geração de Preview (Existente) ---
+        // 2. Gerar Preview
         $('#map-generate-preview').on('click', function(){
-            var $btn = $(this);
-            $btn.prop('disabled', true).text('A gerar...');
+            const $btn = $(this);
+            setLoading($btn, true, 'Gerando...', 'Gerar e Pré-visualizar');
 
-            // Limpa o preview antigo
             $previewContainer.hide();
-            resetEditor();
-            activateTab('conteudo');
-
-            var data = {
+            $editorBox.hide();
+            
+            // Coleta dados do formulário
+            const data = {
                 action: MAP_ADMIN.action_preview,
                 nonce: MAP_ADMIN.nonce,
                 tema: $('input[name="map_tema"]').val(),
@@ -134,105 +90,94 @@
             };
 
             $.post(MAP_ADMIN.ajax_url, data, function(resp){
-                $btn.prop('disabled', false).text('Gerar e Pré-visualizar');
+                setLoading($btn, false, '', 'Gerar e Pré-visualizar');
                 if ( resp.success ) {
-                    var d = resp.data;
-                    var idiomaSel = $('select[name="map_idioma2"] option:selected').text();
-                    var estiloSel = $('select[name="map_estilo2"] option:selected').text();
-                    var tomSel = $('select[name="map_tom"] option:selected').text();
+                    const d = resp.data;
+                    
+                    // Renderiza Preview
+                    $('#map-preview-title').text(d.titulo || 'Sem título');
+                    $('#map-preview-content').html(d.conteudo_html || ''); // PHP já sanitizou com wp_kses
+                    
+                    // Atualiza Imagem
+                    const $cover = $('#map-preview-image');
+                    if (d.image_preview_url) {
+                        $cover.css('background-image', `url(${d.image_preview_url})`).html('<span class="map-cover-badge">Imagem Gerada</span>');
+                    } else {
+                        $cover.css('background-image', 'none').html('<span class="map-cover-badge" style="background:#f3f4f6; color:#666;">Sem imagem</span>');
+                    }
 
-                    $('#map-preview-title').text(d.titulo || '—');
-                    $('#map-preview-content').html(d.conteudo_html || '');
+                    // SEO e Metadados
+                    $('#map-preview-seo').text(d.seo_desc || '');
+                    
+                    // Tags (segurança via escapeHtml)
+                    const tagsHtml = (d.tags || []).map(t => `<span class="map-chip">${escapeHtml(t)}</span>`).join(' ');
+                    $('#map-preview-tags').html(tagsHtml || '<span class="map-helper">Nenhuma</span>');
 
-                    updateCover(d.image_preview_url, d.image_prompt, d.image_preview_error);
-
-                    $('#map-preview-seo').text(d.seo_desc || 'Descrição ainda não fornecida.');
-                    $('#map-preview-tags').html(renderTags(d.tags || []));
-                    $('#map-preview-image-info').text(d.image_preview_url || d.image_preview_error || d.image_prompt || 'Nenhuma imagem gerada.');
-                    $('#map-preview-config').text(`${idiomaSel} • ${estiloSel} • ${tomSel}`);
-
-                    var serpTitle = d.titulo || 'Prévia do artigo';
-                    $('#map-preview-serp-title').text(serpTitle);
-                    $('#map-preview-serp-url').text(buildSerpUrl(serpTitle));
-                    $('#map-preview-serp-desc').text(d.seo_desc || 'Descrição otimizada aparecerá aqui.');
-
-                    $previewContainer.show();
-                    setPayload(d);
+                    // Armazena Payload para publicação
+                    $previewContainer.data('payload', JSON.stringify(d)).show();
+                    $tabButtons.first().click(); // Reset para aba 1
                 } else {
-                    alert('Erro: ' + (resp.data || resp.message || 'Erro desconhecido'));
+                    alert('Erro: ' + (resp.data || 'Falha na geração'));
                 }
             }, 'json').fail(function(){
-                $btn.prop('disabled', false).text('Gerar e Pré-visualizar');
-                alert('Erro fatal na ligação ao servidor.');
+                setLoading($btn, false, '', 'Gerar e Pré-visualizar');
+                alert('Erro de comunicação com o servidor.');
             });
         });
 
-        // --- 3. Lógica de Publicar/Salvar ---
-        $('#map-save-draft').on('click', function(){ publish_from_preview(0); });
-        $('#map-publish').on('click', function(){ publish_from_preview(1); });
+        // 3. Publicação / Rascunho
+        const handlePublish = (isPublish) => {
+            const $btn = isPublish ? $('#map-publish') : $('#map-save-draft');
+            const label = isPublish ? 'Publicar' : 'Rascunho';
+            const loadingLabel = isPublish ? 'Publicando...' : 'Salvando...';
 
-        function publish_from_preview(publish) {
-            var payload = $previewContainer.data('payload') || null;
-            var $btn = publish ? $('#map-publish') : $('#map-save-draft');
+            const payload = $previewContainer.data('payload');
+            if (!payload) { alert('Gere o conteúdo primeiro.'); return; }
 
-            $btn.prop('disabled', true).text(publish? 'A publicar...' : 'A guardar...');
+            setLoading($btn, true, loadingLabel, label);
 
-            var data = {
+            $.post(MAP_ADMIN.ajax_url, {
                 action: MAP_ADMIN.action_publish,
                 nonce: MAP_ADMIN.nonce,
-                publish: publish ? '1' : '0',
-                regenerate: '0', // Usa o payload já gerado
+                publish: isPublish ? '1' : '0',
                 payload: payload
-            };
-            
-            // Se não houver payload, tenta regenerar (fallback, embora o UI geralmente force o preview antes)
-            if(!payload) {
-                data.regenerate = '1';
-                data.tema = $('input[name="map_tema"]').val();
-                data.idioma = $('select[name="map_idioma2"]').val();
-                // ... (outros campos se necessário regenerar)
-            }
-
-            $.post(MAP_ADMIN.ajax_url, data, function(resp){
-                $btn.prop('disabled', false).text(publish? 'Publicar' : 'Rascunho');
-                if ( resp.success ) {
-                    alert('Sucesso! Post criado com ID ' + resp.data.post_id );
-                    $('#map-preview-container').hide();
+            }, function(resp){
+                setLoading($btn, false, '', label);
+                if (resp.success) {
+                    alert('Sucesso! Post ID: ' + resp.data.post_id);
+                    $previewContainer.hide();
+                    $editorField.val('');
                 } else {
-                    alert('Erro: ' + (resp.data || 'Falha ao salvar'));
+                    alert('Erro: ' + resp.data);
                 }
-            }, 'json').fail(function(){
-                $btn.prop('disabled', false).text(publish? 'Publicar' : 'Rascunho');
+            }).fail(() => {
+                setLoading($btn, false, '', label);
                 alert('Erro de conexão.');
             });
-        }
+        };
 
-        // --- 4. Edição Manual do HTML ---
+        $('#map-save-draft').on('click', () => handlePublish(false));
+        $('#map-publish').on('click', () => handlePublish(true));
+
+        // 4. Editor Manual
         $('#map-edit-content').on('click', function(){
-            var payload = getPayload();
-            if (!payload) {
-                alert('Gere uma prévia antes de editar.');
-                return;
-            }
-            $editorField.val(payload.conteudo_html || '');
-            $editorBox.slideDown(160);
-        });
-
-        $('#map-cancel-edit').on('click', function(){
-            resetEditor();
+             const currentHtml = $('#map-preview-content').html();
+             $editorField.val(currentHtml);
+             $editorBox.slideDown();
         });
 
         $('#map-apply-html').on('click', function(){
-            var payload = getPayload();
-            if (!payload) {
-                alert('Gere uma prévia antes de aplicar alterações.');
-                return;
-            }
-            var newHtml = $editorField.val();
-            payload.conteudo_html = newHtml;
+            const newHtml = $editorField.val();
             $('#map-preview-content').html(newHtml);
-            setPayload(payload);
-            resetEditor();
+            
+            // Atualiza payload
+            let payload = JSON.parse($previewContainer.data('payload'));
+            payload.conteudo_html = newHtml;
+            $previewContainer.data('payload', JSON.stringify(payload));
+            
+            $editorBox.slideUp();
         });
+
+        $('#map-cancel-edit').on('click', () => $editorBox.slideUp());
     });
 })(jQuery);
