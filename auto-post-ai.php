@@ -301,7 +301,7 @@ EOD;
 
     // --- 4. AJAX HANDLERS ---
 
-    public function ajax_testar_conexao() {
+    public function ajax_testar_conexao(): void {
         check_ajax_referer( 'map_preview_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permissão negada' );
 
@@ -318,7 +318,7 @@ EOD;
         if ( empty($api_key) ) wp_send_json_error( 'Nenhuma chave fornecida.' );
 
         // Chamada leve para testar (listar models é rápido e free)
-        $res = wp_remote_get( '[https://api.openai.com/v1/models](https://api.openai.com/v1/models)', [
+        $res = wp_remote_get( 'https://api.openai.com/v1/models', [
             'headers' => array( 'Authorization' => 'Bearer ' . $api_key ),
             'timeout' => 10
         ]);
@@ -364,9 +364,9 @@ EOD;
         $this->gravar_post( $conteudo, $img_url, false );
     }
 
-    private function chamar_gpt( $key, $sys, $user, $max_tokens = 800 ) {
+    private function chamar_gpt( string $key, string $sys, string $user, int $max_tokens = 800 ): array|WP_Error {
         $body = array(
-            'model' => 'gpt-4o-mini', 
+            'model' => 'gpt-4o-mini',
             'messages' => array( array('role'=>'system','content'=>$sys), array('role'=>'user','content'=>$user) ),
             'max_tokens' => intval($max_tokens),
             'temperature' => 0.7
@@ -374,7 +374,7 @@ EOD;
 
         $timeout = ( $max_tokens > 2000 ) ? 120 : 60;
 
-        $res = wp_remote_post( '[https://api.openai.com/v1/chat/completions](https://api.openai.com/v1/chat/completions)', [
+        $res = wp_remote_post( 'https://api.openai.com/v1/chat/completions', [
             'headers' => array('Content-Type'=>'application/json', 'Authorization'=>'Bearer '.$key),
             'body' => wp_json_encode( $body ),
             'timeout' => $timeout
@@ -403,10 +403,10 @@ EOD;
         return $decoded;
     }
 
-    private function chamar_dalle( $key, $prompt ) {
+    private function chamar_dalle( string $key, string $prompt ): string|false {
         $sizes = array('1024x1024','512x512');
         foreach( $sizes as $size ) {
-            $res = wp_remote_post( '[https://api.openai.com/v1/images/generations](https://api.openai.com/v1/images/generations)', [
+            $res = wp_remote_post( 'https://api.openai.com/v1/images/generations', [
                 'headers' => array('Content-Type'=>'application/json', 'Authorization'=>'Bearer '.$key),
                 'body' => wp_json_encode( array('model'=>'dall-e-3', 'prompt'=>$prompt, 'size'=>$size, 'n'=>1) ),
                 'timeout' => 60
