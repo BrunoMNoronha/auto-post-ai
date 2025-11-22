@@ -51,8 +51,14 @@ class Scheduler
 
     public function ativar(): void
     {
+        $autoGeracao = $this->optionsRepository->getOption('map_auto_geracao', 'nao');
+
         wp_clear_scheduled_hook('map_ent_evento_diario');
         wp_clear_scheduled_hook(self::HOOK_NAME);
+
+        if ($autoGeracao !== 'sim') {
+            return;
+        }
 
         $recorrencia = $this->mapearRecorrencia($this->optionsRepository->getOption('map_frequencia_cron', 'diario'));
 
