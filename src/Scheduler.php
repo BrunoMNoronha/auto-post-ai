@@ -77,8 +77,7 @@ class Scheduler
 
     public function excluirDados(): void
     {
-        $allOptions = ['map_api_key','map_status','map_usar_imagens','map_tema','map_idioma','map_estilo','map_qtd_paragrafos','map_palavras_por_paragrafo','map_idioma2','map_estilo2','map_tom','map_max_tokens','map_gerar_imagem_auto','map_system_prompt','map_auto_geracao','map_auto_publicar','map_frequencia_cron'];
-        $this->optionsRepository->deleteOptions($allOptions);
+        $this->optionsRepository->deleteOptions($this->optionsRepository->getRegisteredOptionKeys());
         wp_clear_scheduled_hook('map_ent_evento_diario');
         wp_clear_scheduled_hook(self::HOOK_NAME);
     }
