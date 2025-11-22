@@ -32,7 +32,6 @@ $container = new AutoPostAI\Container();
 add_action('admin_menu', [$container->getAdminPage(), 'adicionarMenuPrincipal']);
 add_action('admin_init', [$container->getSettings(), 'registrarConfiguracoes']);
 add_action('map_ent_evento_automacao', [$container->getScheduler(), 'executarAutomacao']);
-add_action('admin_head', [$container->getAdminPage(), 'estilosPersonalizados']);
 add_action('admin_enqueue_scripts', [$container->getAdminPage(), 'enqueueAdminAssets']);
 add_action('update_option_map_frequencia_cron', [$container->getScheduler(), 'ativar'], 10, 0);
 add_action('update_option_map_auto_geracao', [$container->getScheduler(), 'ativar'], 10, 0);
