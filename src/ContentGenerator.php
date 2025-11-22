@@ -44,12 +44,24 @@ class ContentGenerator
         $seoMetadados = (string) $this->optionsRepository->getOption('map_seo_metadados', '');
         $seoTagsExtra = (string) $this->optionsRepository->getOption('map_seo_tags_extra', '');
 
+        // Adiciona instruções extras do usuário se existirem (Quick Edit)
+        $instrucoesExtras = isset($overrides['instrucoes_extras']) ? 
+            "\nINSTRUÇÕES ESPECIAIS: " . sanitize_textarea_field($overrides['instrucoes_extras']) : '';
+
+        // PROMPT AJUSTADO: Estrutura rígida para evitar duplicação
         $userPrompt = <<<EOD
 Escreva um artigo completo sobre o tema: "{$tema}".
 Contexto: Idioma {$idioma}, estilo {$estilo}, tom {$tom}.
-Estrutura: {$qtd} seções de aprox. {$palavras} palavras cada.
+
+ESTRUTURA OBRIGATÓRIA:
+- O corpo do texto deve ter exatamente {$qtd} blocos de conteúdo (um subtítulo h2 seguido de texto).
+- Cada bloco deve ter aproximadamente {$palavras} palavras.
+- IMPORTANTE: NÃO coloque o título do post (H1) no início do HTML retornado. O HTML deve começar direto pelo primeiro H2 ou introdução.
+- NÃO repita a mesma frase da introdução duas vezes.
+
 Metadados adicionais: {$seoMetadados}.
-Tags obrigatórias: {$seoTagsExtra}.
+Tags obrigatórias: {$seoTagsExtra}.{$instrucoesExtras}
+
 Gere o JSON conforme solicitado nas instruções do sistema.
 EOD;
 
@@ -60,7 +72,12 @@ EOD;
 
         $out = [];
         $out['titulo'] = isset($response['titulo']) ? sanitize_text_field($response['titulo']) : 'Sem título';
-        $out['conteudo_html'] = isset($response['conteudo_html']) ? wp_kses_post($response['conteudo_html']) : '';
+        
+        // Remove H1 caso a IA tenha colocado, para evitar duplicação no tema do WP
+        $rawHtml = isset($response['conteudo_html']) ? (string)$response['conteudo_html'] : '';
+        $rawHtml = preg_replace('/<h1[^>]*>.*?<\/h1>/si', '', $rawHtml);
+        
+        $out['conteudo_html'] = wp_kses_post($rawHtml);
         $out['seo_desc'] = isset($response['seo_desc']) ? sanitize_text_field(substr((string) $response['seo_desc'], 0, 160)) : '';
 
         $tags = [];
@@ -98,6 +115,7 @@ EOD;
         $timeout = $maxTokens > 2000 ? max($baseTimeout, (int) ceil($baseTimeout * 1.5)) : $baseTimeout;
         $timeout = min($timeout, 600);
 
+        // A URL ESTÁ AQUI. Verifique se esta linha está idêntica no seu arquivo.
         $response = $this->httpClient->post('https://api.openai.com/v1/chat/completions', [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $key],
             'body' => wp_json_encode($body),
@@ -105,6 +123,7 @@ EOD;
         ]);
 
         if (is_wp_error($response)) {
+            // Repassa a mensagem de erro detalhada do WordPress/HTTP
             return new \WP_Error('http_error', 'Erro HTTP: ' . $response->get_error_message());
         }
 

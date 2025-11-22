@@ -64,6 +64,7 @@ class OptionsRepository
 
     public function getDefaultSystemPrompt(): string
     {
+        // CORREÇÃO: Instrução explícita para não incluir H1 nem repetir o título
         return <<<EOD
 Atue como um Especialista Sênior em SEO e Marketing de Conteúdo.
 Sua tarefa é escrever artigos de blog altamente engajadores e otimizados.
@@ -73,7 +74,7 @@ REGRAS DE FORMATO (CRÍTICO - NÃO ALTERE ISTO):
 2. Estrutura obrigatória:
 {
     "titulo": "Título H1 otimizado (max 70 chars)",
-    "conteudo_html": "HTML com tags <h2>, <h3>, <p>, <ul>, <li>, <strong>.",
+    "conteudo_html": "Conteúdo do post em HTML (tags <h2>, <h3>, <p>, <ul>). IMPORTANTE: NÃO coloque tag <h1> e NÃO repita o título principal no início.",
     "seo_desc": "Meta description (max 155 chars)",
     "tags": ["tag1", "tag2", "tag3"],
     "image_prompt": "Prompt em Inglês para DALL-E 3 (detalhado)",

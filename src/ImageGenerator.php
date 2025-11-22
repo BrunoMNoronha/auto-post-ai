@@ -38,6 +38,7 @@ class ImageGenerator
             $payload['response_format'] = 'url';
         }
 
+        // URL Hardcoded para imagem
         $response = $this->httpClient->post('https://api.openai.com/v1/images/generations', [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $apiKey],
             'body' => wp_json_encode($payload),
@@ -45,96 +46,26 @@ class ImageGenerator
         ]);
 
         if (is_wp_error($response)) {
-            error_log('Auto Post AI - Erro ao chamar API de imagem: ' . $response->get_error_message());
-
+            error_log('Auto Post AI - Erro API Imagem: ' . $response->get_error_message());
             return $response;
         }
 
         $responseCode = wp_remote_retrieve_response_code($response);
         $bodyRaw = (string) wp_remote_retrieve_body($response);
         $body = json_decode($bodyRaw, true);
-        $bodySnippet = $this->truncateBody($bodyRaw);
 
         if ($responseCode !== 200) {
-            $mensagemApi = is_array($body) && isset($body['error']['message']) ? (string) $body['error']['message'] : null;
-            $mensagemErro = 'Auto Post AI - Erro na API de imagem. Código: ' . $responseCode;
-            if ($mensagemApi !== null) {
-                $mensagemErro .= ' - ' . $mensagemApi;
+            $msg = 'Erro API Imagem ' . $responseCode;
+            if (isset($body['error']['message'])) {
+                $msg .= ': ' . $body['error']['message'];
             }
-            if ($bodySnippet !== '') {
-                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
-            }
-
-            error_log($mensagemErro);
-
-            return new \WP_Error((string) $responseCode, $mensagemErro, $body['error'] ?? ['body' => $bodySnippet]);
+            return new \WP_Error((string)$responseCode, $msg);
         }
 
-        if (is_array($body) && isset($body['error'])) {
-            $mensagemApi = (string) ($body['error']['message'] ?? 'Desconhecido');
-            $mensagemErro = 'Auto Post AI - Erro na API de imagem: ' . $mensagemApi;
-            if ($bodySnippet !== '') {
-                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
-            }
-            error_log($mensagemErro);
-
-            return new \WP_Error('api_error', $mensagemErro, $body['error']);
-        }
-
-        if (!is_array($body) || !isset($body['data']) || !is_array($body['data']) || $body['data'] === []) {
-            $mensagemErro = 'Auto Post AI - Resposta inválida da API de imagem. Código: ' . $responseCode;
-            if ($bodySnippet !== '') {
-                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
-            }
-
-            error_log($mensagemErro);
-
-            return new \WP_Error('invalid_image_response', $mensagemErro, ['body' => $body, 'status' => $responseCode]);
-        }
         if (isset($body['data'][0]['url'])) {
             return (string) $body['data'][0]['url'];
         }
 
-        if (isset($body['data'][0]['b64_json']) && is_string($body['data'][0]['b64_json'])) {
-            return $this->processBase64Image($body['data'][0]['b64_json']);
-        }
-
         return false;
-    }
-
-    private function processBase64Image(string $base64Image): string|false
-    {
-        if (!function_exists('wp_upload_bits')) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-        }
-
-        $imageData = base64_decode($base64Image);
-        if ($imageData === false) {
-            return false;
-        }
-
-        $uploadBits = wp_upload_bits('gpt-image-' . uniqid('', true) . '.png', null, $imageData);
-        if (!empty($uploadBits['error']) || !isset($uploadBits['url'])) {
-            return false;
-        }
-
-        if (!function_exists('media_sideload_image')) {
-            require_once ABSPATH . 'wp-admin/includes/media.php';
-            require_once ABSPATH . 'wp-admin/includes/image.php';
-        }
-
-        $imageUrl = media_sideload_image($uploadBits['url'], 0, null, 'src');
-        if (is_wp_error($imageUrl)) {
-            return false;
-        }
-
-        return is_string($imageUrl) ? $imageUrl : false;
-    }
-
-    private function truncateBody(string $body): string
-    {
-        $bodyLimpo = trim($body);
-
-        return $bodyLimpo === '' ? '' : substr($bodyLimpo, 0, 500);
     }
 }
