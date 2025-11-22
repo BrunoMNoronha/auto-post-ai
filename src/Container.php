@@ -81,7 +81,11 @@ class Container
     public function getImageGenerator(): ImageGenerator
     {
         if ($this->imageGenerator === null) {
-            $this->imageGenerator = new ImageGenerator($this->getHttpClient(), $this->getApiKeyProvider());
+            $this->imageGenerator = new ImageGenerator(
+                $this->getHttpClient(),
+                $this->getApiKeyProvider(),
+                $this->getOptionsRepository()
+            );
         }
 
         return $this->imageGenerator;

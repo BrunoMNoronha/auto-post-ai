@@ -8,7 +8,8 @@ class ImageGenerator
 {
     public function __construct(
         private HttpClient $httpClient,
-        private ApiKeyProvider $apiKeyProvider
+        private ApiKeyProvider $apiKeyProvider,
+        private OptionsRepository $optionsRepository
     ) {
     }
 
@@ -19,22 +20,33 @@ class ImageGenerator
             return false;
         }
 
-        $sizes = ['1024x1024', '512x512'];
-        foreach ($sizes as $size) {
-            $response = $this->httpClient->post('https://api.openai.com/v1/images/generations', [
-                'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $apiKey],
-                'body' => wp_json_encode(['model' => 'dall-e-3', 'prompt' => $prompt, 'size' => $size, 'n' => 1]),
-                'timeout' => 60,
-            ]);
+        $modelo = (string) $this->optionsRepository->getOption('map_image_model', 'dall-e-3');
+        $size = (string) $this->optionsRepository->getOption('map_image_resolution', '1024x1024');
+        $style = (string) $this->optionsRepository->getOption('map_image_style', 'natural');
+        $quality = (string) $this->optionsRepository->getOption('map_image_quality', 'standard');
 
-            if (is_wp_error($response)) {
-                continue;
-            }
+        $payload = [
+            'model' => $modelo,
+            'prompt' => $prompt,
+            'size' => $size,
+            'style' => $style,
+            'quality' => $quality,
+            'n' => 1,
+        ];
 
-            $body = json_decode((string) wp_remote_retrieve_body($response), true);
-            if (isset($body['data'][0]['url'])) {
-                return (string) $body['data'][0]['url'];
-            }
+        $response = $this->httpClient->post('https://api.openai.com/v1/images/generations', [
+            'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $apiKey],
+            'body' => wp_json_encode($payload),
+            'timeout' => 60,
+        ]);
+
+        if (is_wp_error($response)) {
+            return false;
+        }
+
+        $body = json_decode((string) wp_remote_retrieve_body($response), true);
+        if (isset($body['data'][0]['url'])) {
+            return (string) $body['data'][0]['url'];
         }
 
         return false;
