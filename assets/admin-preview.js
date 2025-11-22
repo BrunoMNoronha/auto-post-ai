@@ -5,10 +5,11 @@
         
         // Elementos DOM
         const $previewContainer = $('#map-preview-container');
-        const $tabButtons = $previewContainer.find('.map-tab-btn');
-        const $tabPanels = $previewContainer.find('.map-tab-panel');
-        const $editorBox = $('#map-editor-box');
+        const $placeholder = $('#map-preview-placeholder');
+        const $tabButtons = $('.map-tab-btn');
+        const $tabPanels = $('.map-tab-panel');
         const $editorField = $('#map-preview-editor');
+        const $urlDisplay = $('#map-browser-url-display');
 
         // Helpers
         const setLoading = ($btn, isLoading, textLoading, textNormal) => {
@@ -21,15 +22,15 @@
             }
         };
 
-        // Adiciona CSS de animação dinamicamente (ou adicione ao admin-style.css)
-        $('<style>.map-spin { animation: map-spin 2s infinite linear; display:inline-block; } @keyframes map-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
+        // Injeta CSS para animação de loading se não existir
+        if ($('style#map-spin-css').length === 0) {
+            $('<style id="map-spin-css">.map-spin { animation: map-spin 2s infinite linear; display:inline-block; vertical-align:middle; } @keyframes map-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>').appendTo('head');
+        }
 
-        // Escapar HTML para segurança
         function escapeHtml(value) {
             return $('<div>').text(value || '').html();
         }
 
-        // Slugify simples
         function slugify(text) {
             return (text || '').toLowerCase().normalize('NFD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_-]+/g, '-');
         }
@@ -40,7 +41,15 @@
             $tabButtons.removeClass('is-active');
             $tabPanels.removeClass('is-active');
             $(this).addClass('is-active');
-            $previewContainer.find(`.map-tab-panel[data-tab="${tab}"]`).addClass('is-active');
+            $(`.map-tab-panel[data-tab="${tab}"]`).addClass('is-active');
+
+            // Se abriu a aba de HTML, atualiza o textarea com o conteúdo atual
+            if (tab === 'editor-html') {
+                const currentHtml = $('#map-preview-content').html();
+                if ($editorField.val() === '') {
+                     $editorField.val(currentHtml);
+                }
+            }
         });
 
         // 1. Teste de API
@@ -71,12 +80,11 @@
         // 2. Gerar Preview
         $('#map-generate-preview').on('click', function(){
             const $btn = $(this);
-            setLoading($btn, true, 'Gerando...', 'Gerar e Pré-visualizar');
+            setLoading($btn, true, 'Gerando Inteligência...', 'Gerar e Pré-visualizar');
 
             $previewContainer.hide();
-            $editorBox.hide();
+            $placeholder.show().text('A gerar conteúdo, aguarde...');
             
-            // Coleta dados do formulário
             const data = {
                 action: MAP_ADMIN.action_preview,
                 nonce: MAP_ADMIN.nonce,
@@ -96,7 +104,7 @@
                     
                     // Renderiza Preview
                     $('#map-preview-title').text(d.titulo || 'Sem título');
-                    $('#map-preview-content').html(d.conteudo_html || ''); // PHP já sanitizou com wp_kses
+                    $('#map-preview-content').html(d.conteudo_html || ''); 
                     
                     // Atualiza Imagem
                     const $cover = $('#map-preview-image');
@@ -106,64 +114,63 @@
                         $cover.css('background-image', 'none').html('<span class="map-cover-badge" style="background:#f3f4f6; color:#666;">Sem imagem</span>');
                     }
 
-                    // SEO e Metadados
-                    $('#map-preview-seo').text(d.seo_desc || '');
+                    // Sidebar Info
+                    $('#map-preview-serp-title').text(d.titulo || 'Título');
+                    $('#map-preview-serp-desc').text(d.seo_desc || 'Descrição não disponível.');
                     
-                    // Tags (segurança via escapeHtml)
                     const tagsHtml = (d.tags || []).map(t => `<span class="map-chip">${escapeHtml(t)}</span>`).join(' ');
                     $('#map-preview-tags').html(tagsHtml || '<span class="map-helper">Nenhuma</span>');
 
-                    // Armazena Payload para publicação
-                    $previewContainer.data('payload', JSON.stringify(d)).show();
-                    $tabButtons.first().click(); // Reset para aba 1
+                    // Config info
+                    const idiomaSel = $('select[name="map_idioma2"] option:selected').text();
+                    const estiloSel = $('select[name="map_estilo2"] option:selected').text();
+                    $('#map-preview-config').text(`${idiomaSel} • ${estiloSel}`);
+                    $('#map-preview-image-info').text(d.image_prompt || 'N/A');
+
+                    // URL Falsa
+                    const slug = slugify(d.titulo);
+                    $urlDisplay.text(`${MAP_ADMIN.site_url.replace('https://','').replace('http://','')}/blog/${slug}`);
+
+                    // Mostra container
+                    $placeholder.hide();
+                    $previewContainer.data('payload', JSON.stringify(d)).fadeIn();
+                    
+                    // Reset para primeira aba
+                    $tabButtons.first().trigger('click'); 
+                    $editorField.val(''); // Limpa editor manual
+
                 } else {
+                    $placeholder.text('Erro: ' + (resp.data || 'Falha na geração'));
                     alert('Erro: ' + (resp.data || 'Falha na geração'));
                 }
             }, 'json').fail(function(){
                 setLoading($btn, false, '', 'Gerar e Pré-visualizar');
-                alert('Erro de comunicação com o servidor.');
+                $placeholder.text('Erro de comunicação com o servidor.');
             });
         });
 
         // 3. Publicação / Rascunho
-        const collectConfig = () => ({
-            tema: $('input[name="map_tema"]').val(),
-            idioma: $('select[name="map_idioma2"]').val(),
-            estilo: $('select[name="map_estilo2"]').val(),
-            tom: $('select[name="map_tom"]').val(),
-            qtd_paragrafos: $('input[name="map_qtd_paragrafos"]').val(),
-            palavras_por_paragrafo: $('input[name="map_palavras_por_paragrafo"]').val(),
-            max_tokens: $('input[name="map_max_tokens"]').val()
-        });
-
         const handlePublish = (isPublish) => {
             const $btn = isPublish ? $('#map-publish') : $('#map-save-draft');
             const label = isPublish ? 'Publicar' : 'Rascunho';
             const loadingLabel = isPublish ? 'Publicando...' : 'Salvando...';
 
             const payload = $previewContainer.data('payload');
-            const hasPreview = Boolean(payload);
-
-            const requestData = {
-                action: MAP_ADMIN.action_publish,
-                nonce: MAP_ADMIN.nonce,
-                publish: isPublish ? '1' : '0',
-                regenerate: hasPreview ? '0' : '1',
-                ...collectConfig()
-            };
-
-            if (hasPreview) {
-                requestData.payload = payload;
-            }
+            if (!payload) { alert('Gere o conteúdo primeiro.'); return; }
 
             setLoading($btn, true, loadingLabel, label);
 
-            $.post(MAP_ADMIN.ajax_url, requestData, function(resp){
+            $.post(MAP_ADMIN.ajax_url, {
+                action: MAP_ADMIN.action_publish,
+                nonce: MAP_ADMIN.nonce,
+                publish: isPublish ? '1' : '0',
+                payload: payload
+            }, function(resp){
                 setLoading($btn, false, '', label);
                 if (resp.success) {
                     alert('Sucesso! Post ID: ' + resp.data.post_id);
                     $previewContainer.hide();
-                    $editorField.val('');
+                    $placeholder.show().text('Publicado com sucesso!');
                 } else {
                     alert('Erro: ' + resp.data);
                 }
@@ -176,25 +183,19 @@
         $('#map-save-draft').on('click', () => handlePublish(false));
         $('#map-publish').on('click', () => handlePublish(true));
 
-        // 4. Editor Manual
-        $('#map-edit-content').on('click', function(){
-             const currentHtml = $('#map-preview-content').html();
-             $editorField.val(currentHtml);
-             $editorBox.slideDown();
-        });
-
+        // 4. Editor Manual - Aplicar
         $('#map-apply-html').on('click', function(){
             const newHtml = $editorField.val();
             $('#map-preview-content').html(newHtml);
             
-            // Atualiza payload
+            // Atualiza payload para salvar corretamente
             let payload = JSON.parse($previewContainer.data('payload'));
             payload.conteudo_html = newHtml;
             $previewContainer.data('payload', JSON.stringify(payload));
             
-            $editorBox.slideUp();
+            alert('HTML aplicado ao preview! Agora você pode Publicar/Salvar.');
+            // Volta para a aba visual
+            $('.map-tab-btn[data-tab="conteudo"]').trigger('click');
         });
-
-        $('#map-cancel-edit').on('click', () => $editorBox.slideUp());
     });
 })(jQuery);

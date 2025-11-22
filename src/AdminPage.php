@@ -44,8 +44,8 @@ class AdminPage
     public function adicionarMenuPrincipal(): void
     {
         add_menu_page(
-            __('Auto Post AI', 'auto-post-ai'),
-            __('Auto Post AI', 'auto-post-ai'),
+            'Auto Post AI',
+            'Auto Post AI',
             'manage_options',
             'auto-post-ai',
             [$this, 'renderizarPagina'],
@@ -55,8 +55,8 @@ class AdminPage
 
         add_submenu_page(
             'auto-post-ai',
-            __('Automação', 'auto-post-ai'),
-            __('Automação', 'auto-post-ai'),
+            'Automação',
+            'Automação',
             'manage_options',
             'auto-post-ai-automacao',
             [$this, 'renderizarAutomacao']
@@ -64,12 +64,17 @@ class AdminPage
 
         add_submenu_page(
             'auto-post-ai',
-            __('Histórico de Uso', 'auto-post-ai'),
-            __('Histórico de Uso', 'auto-post-ai'),
+            'Histórico de Uso',
+            'Histórico de Uso',
             'manage_options',
             'auto-post-ai-historico',
             [$this, 'renderizarHistorico']
         );
+    }
+
+    // Mantido vazio intencionalmente, pois o CSS agora é carregado via arquivo .css
+    public function estilosPersonalizados(): void
+    {
     }
 
     public function enqueueAdminAssets(string $hook): void
@@ -79,10 +84,13 @@ class AdminPage
             return;
         }
 
-        $stylePath = plugin_dir_url(__DIR__ . '/../auto-post-ai.php') . 'assets/admin-style.css';
+        // Carrega o novo arquivo CSS
+        $cssPath = plugin_dir_url(__DIR__ . '/../auto-post-ai.php') . 'assets/admin-style.css';
+        wp_enqueue_style('map-admin-css', $cssPath, [], '1.4');
+
         $assetPath = plugin_dir_url(__DIR__ . '/../auto-post-ai.php') . 'assets/admin-preview.js';
-        wp_enqueue_style('map-admin-css', $stylePath, [], '1.2');
-        wp_enqueue_script('map-admin-js', $assetPath, ['jquery'], '1.2', true);
+        wp_enqueue_script('map-admin-js', $assetPath, ['jquery'], '1.4', true);
+        
         wp_localize_script('map-admin-js', 'MAP_ADMIN', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('map_preview_nonce'),
@@ -124,22 +132,22 @@ class AdminPage
             <div class="map-header">
                 <div class="map-title">
                     <span class="dashicons dashicons-chart-line" style="font-size:32px; width:32px; height:32px;"></span>
-                    <?php echo esc_html__('Histórico de Uso', 'auto-post-ai'); ?> <span class="map-badge">IA</span>
+                    Histórico de Uso <span class="map-badge">IA</span>
                 </div>
             </div>
 
             <div class="map-card">
-                <h2><?php echo esc_html__('Filtros', 'auto-post-ai'); ?></h2>
+                <h2>Filtros</h2>
                 <form method="get" class="map-inline-form">
                     <input type="hidden" name="page" value="auto-post-ai-historico" />
-                    <label class="map-label" style="margin:0;"><?php echo esc_html__('Período', 'auto-post-ai'); ?></label>
+                    <label class="map-label" style="margin:0;">Período</label>
                     <select name="periodo" aria-label="Período rápido">
                         <?php
                         $opcoes = [
-                            '7' => __('Últimos 7 dias', 'auto-post-ai'),
-                            '30' => __('Últimos 30 dias', 'auto-post-ai'),
-                            '90' => __('Últimos 90 dias', 'auto-post-ai'),
-                            'custom' => __('Personalizado', 'auto-post-ai'),
+                            '7' => 'Últimos 7 dias',
+                            '30' => 'Últimos 30 dias',
+                            '90' => 'Últimos 90 dias',
+                            'custom' => 'Personalizado',
                         ];
                         foreach ($opcoes as $valor => $label) {
                             printf('<option value="%s" %s>%s</option>', esc_attr($valor), selected($periodo, $valor, false), esc_html($label));
@@ -147,49 +155,45 @@ class AdminPage
                         ?>
                     </select>
 
-                    <label class="map-label" style="margin:0;"><?php echo esc_html__('De', 'auto-post-ai'); ?></label>
+                    <label class="map-label" style="margin:0;">De</label>
                     <input type="date" name="data_inicio" value="<?php echo esc_attr($dataInicio); ?>" />
-                    <label class="map-label" style="margin:0;"><?php echo esc_html__('Até', 'auto-post-ai'); ?></label>
+                    <label class="map-label" style="margin:0;">Até</label>
                     <input type="date" name="data_fim" value="<?php echo esc_attr($dataFim); ?>" />
 
-                    <button type="submit" class="button button-primary"><?php echo esc_html__('Aplicar', 'auto-post-ai'); ?></button>
+                    <button type="submit" class="button button-primary">Aplicar</button>
                 </form>
             </div>
 
             <div class="map-card">
-                <h2><?php echo esc_html__('Resumo', 'auto-post-ai'); ?></h2>
+                <h2>Resumo</h2>
                 <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:20px;">
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;"><?php echo esc_html__('Total de Tokens', 'auto-post-ai'); ?></p>
+                        <p class="map-label" style="margin-bottom:6px;">Total de Tokens</p>
                         <div class="map-title" style="font-size:22px;"><?php echo number_format($totalTokens); ?></div>
                     </div>
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;">
-                            <?php echo esc_html__('Valor Aproximado', 'auto-post-ai'); ?>
-                        </p>
+                        <p class="map-label" style="margin-bottom:6px;">Valor Aproximado</p>
                         <div class="map-title" style="font-size:22px;">$<?php echo number_format($totalCusto, 4); ?></div>
                     </div>
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;">
-                            <?php echo esc_html__('Entradas no Período', 'auto-post-ai'); ?>
-                        </p>
+                        <p class="map-label" style="margin-bottom:6px;">Entradas no Período</p>
                         <div class="map-title" style="font-size:22px;"><?php echo number_format((int) $totalRegistros); ?></div>
                     </div>
                 </div>
             </div>
 
             <div class="map-card">
-                <h2><?php echo esc_html__('Detalhamento', 'auto-post-ai'); ?></h2>
+                <h2>Detalhamento</h2>
                 <?php if (empty($historico)) : ?>
-                    <p class="map-helper"><?php echo esc_html__('Nenhum registro encontrado para o período informado.', 'auto-post-ai'); ?></p>
+                    <p class="map-helper">Nenhum registro encontrado para o período informado.</p>
                 <?php else : ?>
                     <table class="map-table">
                         <thead>
                             <tr>
-                                <th><?php echo esc_html__('Data/Hora', 'auto-post-ai'); ?></th>
-                                <th><?php echo esc_html__('Modelo', 'auto-post-ai'); ?></th>
-                                <th><?php echo esc_html__('Tokens', 'auto-post-ai'); ?></th>
-                                <th><?php echo esc_html__('Valor Aproximado', 'auto-post-ai'); ?></th>
+                                <th>Data/Hora</th>
+                                <th>Modelo</th>
+                                <th>Tokens</th>
+                                <th>Valor Aproximado</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -198,13 +202,9 @@ class AdminPage
                                     <td><?php echo esc_html(date_i18n('d/m/Y H:i', (int) $registro['timestamp'])); ?></td>
                                     <td><span class="map-chip"><?php echo esc_html($registro['model']); ?></span></td>
                                     <td>
-                                        <div class="map-badge map-badge-muted"><?php echo esc_html__('Prompt:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['prompt_tokens']); ?></div>
-                                        <div class="map-badge map-badge-muted" style="margin-left:6px;">
-                                            <?php echo esc_html__('Geração:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['completion_tokens']); ?>
-                                        </div>
-                                        <div class="map-helper" style="margin-top:4px;">
-                                            <?php echo esc_html__('Total:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['total_tokens']); ?>
-                                        </div>
+                                        <div class="map-badge map-badge-muted">Prompt: <?php echo number_format((int) $registro['prompt_tokens']); ?></div>
+                                        <div class="map-badge map-badge-muted" style="margin-left:6px;">Geração: <?php echo number_format((int) $registro['completion_tokens']); ?></div>
+                                        <div class="map-helper" style="margin-top:4px;">Total: <?php echo number_format((int) $registro['total_tokens']); ?></div>
                                     </td>
                                 <td>$<?php echo number_format((float) $registro['cost'], 6); ?></td>
                             </tr>
@@ -224,8 +224,8 @@ class AdminPage
                             'format' => '',
                             'current' => $paginaAtual,
                             'total' => $totalPaginas,
-                            'prev_text' => sprintf('&laquo; %s', esc_html__('Anterior', 'auto-post-ai')),
-                            'next_text' => sprintf('%s &raquo;', esc_html__('Próxima', 'auto-post-ai')),
+                            'prev_text' => '&laquo; Anterior',
+                            'next_text' => 'Próxima &raquo;',
                         ]);
 
                         if ($links) {
@@ -369,85 +369,108 @@ class AdminPage
                 <div class="map-grid">
                     <div class="map-main">
                         <div class="map-card map-card-highlight">
-                            <h2>🎯 Tema e Pré-visualização</h2>
+                            <h2>🎯 Tema e Geração</h2>
                             <div class="map-form-group">
                                 <label class="map-label">Tema Principal</label>
                                 <input type="text" name="map_tema" value="<?php echo esc_attr(get_option('map_tema')); ?>" class="map-input" placeholder="Ex: Notícias de Tecnologia, Receitas de Bolo..." />
                                 <p class="map-helper">Defina o assunto central usado em todas as gerações.</p>
                             </div>
                             <div class="map-inline-actions">
-                                <p class="map-helper" style="margin:0;">Ajuste as configurações no painel ao lado antes de gerar a prévia.</p>
-                                <button type="button" id="map-generate-preview" class="button">Gerar e Pré-visualizar</button>
+                                <button type="button" id="map-generate-preview" class="button button-large">Gerar e Pré-visualizar</button>
                             </div>
                         </div>
 
                         <div class="map-card">
-                            <h2>Pré-visualização</h2>
-                            <div id="map-preview-container" class="map-preview-card" style="display:none; margin-top:10px;">
-                                <div class="map-preview-header">
-                                    <div>
-                                        <p class="map-eyebrow">Painel de Publicação Profissional</p>
-                                        <h2 class="map-preview-title">Pré-visualização premium</h2>
-                                    </div>
-                                    <div class="map-preview-actions">
-                                        <button type="button" id="map-edit-content" class="button">Editar Conteúdo</button>
-                                        <button type="button" id="map-save-draft" class="button">Rascunho</button>
-                                        <button type="button" id="map-publish" class="button button-primary">Publicar</button>
-                                    </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <h2 style="margin:0; border:none; padding:0;">Pré-visualização</h2>
+                                <div class="map-preview-actions-top">
+                                    <button type="button" id="map-save-draft" class="button"><span class="dashicons dashicons-edit"></span> Rascunho</button>
+                                    <button type="button" id="map-publish" class="button button-primary"><span class="dashicons dashicons-upload"></span> Publicar</button>
                                 </div>
-                                <div class="map-serp-card" aria-label="Prévia Google SERP">
-                                    <div id="map-preview-serp-title" class="map-serp-title"></div>
-                                    <div id="map-preview-serp-url" class="map-serp-url"></div>
-                                    <div id="map-preview-serp-desc" class="map-serp-desc"></div>
-                                </div>
-                                <div class="map-tab-nav" role="tablist">
-                                    <button type="button" class="map-tab-btn is-active" data-tab="conteudo">Conteúdo</button>
-                                    <button type="button" class="map-tab-btn" data-tab="metadados">Metadados</button>
-                                </div>
-                                <div class="map-tab-panel is-active" data-tab="conteudo">
-                                    <div class="map-article-card">
-                                        <div id="map-preview-image" class="map-cover"></div>
-                                        <div class="map-article-body">
-                                            <h1 id="map-preview-title"></h1>
-                                            <div id="map-preview-content" class="map-article-content"></div>
-                                        </div>
+                            </div>
+
+                            <div id="map-preview-container" class="map-preview-wrapper" style="display:none;">
+                                <div class="map-browser-bar">
+                                    <div class="map-browser-dots">
+                                        <span></span><span></span><span></span>
                                     </div>
-                                    <div id="map-editor-box" class="map-editor-box" style="display:none;">
-                                        <label class="map-label" for="map-preview-editor">Ajuste manual do HTML</label>
-                                        <textarea id="map-preview-editor"></textarea>
-                                        <div class="map-editor-actions">
-                                            <button type="button" id="map-cancel-edit" class="button">Cancelar</button>
-                                            <button type="button" id="map-apply-html" class="button button-primary">Aplicar HTML</button>
-                                        </div>
+                                    <div class="map-browser-address">
+                                        <span id="map-browser-url-display" class="map-muted-text">aguardando-geracao...</span>
                                     </div>
                                 </div>
-                                <div class="map-tab-panel" data-tab="metadados">
-                                    <div class="map-meta-grid">
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">SEO</span>
-                                            <div id="map-preview-seo" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Prévia do snippet entregue pelo modelo.</p>
+
+                                <div class="map-preview-body-grid">
+                                    <div class="map-preview-main-col">
+                                        <div class="map-tab-nav" role="tablist">
+                                            <button type="button" class="map-tab-btn is-active" data-tab="conteudo">
+                                                <span class="dashicons dashicons-text-page"></span> Artigo
+                                            </button>
+                                            <button type="button" class="map-tab-btn" data-tab="editor-html">
+                                                <span class="dashicons dashicons-html"></span> Editor HTML
+                                            </button>
                                         </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Tags sugeridas</span>
-                                            <div id="map-preview-tags"></div>
-                                            <p class="map-meta-note">Use como base para categorias e taxonomias.</p>
+
+                                        <div class="map-tab-panel is-active" data-tab="conteudo">
+                                            <div class="map-article-canvas">
+                                                <div id="map-preview-image" class="map-hero-image"></div>
+                                                <div class="map-article-typography">
+                                                    <h1 id="map-preview-title"></h1>
+                                                    <div id="map-preview-content"></div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Imagem de destaque</span>
-                                            <div id="map-preview-image-info" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Prompt ou URL usado na geração visual.</p>
+
+                                        <div class="map-tab-panel" data-tab="editor-html">
+                                            <div class="map-editor-box">
+                                                <p class="map-helper">Edite o código HTML manualmente se necessário:</p>
+                                                <textarea id="map-preview-editor" spellcheck="false"></textarea>
+                                                <div class="map-editor-actions">
+                                                    <button type="button" id="map-apply-html" class="button button-primary">Aplicar Alterações</button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Configuração</span>
-                                            <div id="map-preview-config" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Idioma, estilo e tom aplicados.</p>
+                                    </div>
+
+                                    <div class="map-preview-sidebar-col">
+                                        <div class="map-sidebar-card">
+                                            <h3 class="map-sidebar-title">Google Preview</h3>
+                                            <div class="map-serp-card">
+                                                <div class="map-serp-header">
+                                                    <div class="map-serp-icon"></div>
+                                                    <div class="map-serp-site-name">Seu Site › Blog</div>
+                                                </div>
+                                                <div id="map-preview-serp-title" class="map-serp-title"></div>
+                                                <div id="map-preview-serp-desc" class="map-serp-desc"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="map-sidebar-card">
+                                            <h3 class="map-sidebar-title">Detalhes</h3>
+                                            
+                                            <div class="map-meta-item">
+                                                <span class="map-meta-label">Tags</span>
+                                                <div id="map-preview-tags" class="map-tags-cloud"></div>
+                                            </div>
+
+                                            <div class="map-meta-item">
+                                                <span class="map-meta-label">Configuração</span>
+                                                <div id="map-preview-config" class="map-config-text"></div>
+                                            </div>
+                                            
+                                            <div class="map-meta-item">
+                                                <span class="map-meta-label">Imagem (Prompt)</span>
+                                                <div id="map-preview-image-info" class="map-prompt-text"></div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p class="map-helper" style="margin-top:10px;">A pré-visualização aparece aqui assim que você gerar o conteúdo.</p>
+
+                            <p class="map-helper" id="map-preview-placeholder" style="margin-top:20px; text-align:center; padding: 40px; background:#f9fafb; border: 2px dashed #e5e7eb; border-radius: 8px;">
+                                O conteúdo gerado aparecerá aqui.
+                            </p>
                         </div>
+
                     </div>
 
                     <div class="map-sidebar">
