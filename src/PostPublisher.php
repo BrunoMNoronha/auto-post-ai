@@ -17,7 +17,11 @@ class PostPublisher
 
         $postId = wp_insert_post($postArgs);
 
-        if ($postId && !is_wp_error($postId)) {
+        if (is_wp_error($postId)) {
+            return $postId;
+        }
+
+        if (is_int($postId) && $postId > 0) {
             if (!empty($dados['seo_desc'])) {
                 update_post_meta($postId, '_map_seo_description', sanitize_text_field($dados['seo_desc']));
             }
