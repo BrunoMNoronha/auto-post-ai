@@ -397,6 +397,7 @@ class AdminPage
         $estiloSel = $this->optionsRepository->getOption('map_estilo2', $this->optionsRepository->getOption('map_estilo', 'Informativo'));
         $tomSel = $this->optionsRepository->getOption('map_tom', 'Neutro');
         $maxTokens = $this->optionsRepository->getOption('map_max_tokens', 1500);
+        $requestTimeout = $this->optionsRepository->getOption('map_request_timeout', 120);
         $systemPrompt = $this->optionsRepository->getOption('map_system_prompt', $this->optionsRepository->getDefaultSystemPrompt());
         $modeloIa = $this->optionsRepository->getOption('map_modelo_ia', 'gpt-4o-mini');
         $temperatura = (float) $this->optionsRepository->getOption('map_temperatura', 0.7);
@@ -505,7 +506,7 @@ class AdminPage
                     <div class="map-sidebar">
                         <div class="map-accordion-stack">
                             <?php
-                            $this->renderAccordionSection('map-accordion-modelo', '🤖 Opções do Modelo', 'Modelo, temperatura e prompt base', function () use ($modeloIa, $temperatura, $maxTokens, $systemPrompt): void {
+                            $this->renderAccordionSection('map-accordion-modelo', '🤖 Opções do Modelo', 'Modelo, temperatura e prompt base', function () use ($modeloIa, $temperatura, $maxTokens, $systemPrompt, $requestTimeout): void {
                                 ?>
                                 <div class="map-compact-grid">
                                     <div class="map-form-group">
@@ -532,11 +533,17 @@ class AdminPage
                                         <label class="map-label">Máx. Tokens</label>
                                         <input type="number" name="map_max_tokens" min="50" max="8000" value="<?php echo esc_attr($maxTokens); ?>" class="map-input" />
                                     </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Timeout da requisição (segundos)</label>
+                                        <input type="number" name="map_request_timeout" min="30" max="600" value="<?php echo esc_attr($requestTimeout); ?>" class="map-input" />
+                                        <p class="map-helper">Aumente para modelos mais lentos ou geração de imagens e ajuste também <code>max_execution_time</code>/<code>proxy_read_timeout</code> no servidor.</p>
+                                    </div>
                                 </div>
                                 <div class="map-form-group">
                                     <label class="map-label">System Prompt (Instruções do Robô)</label>
                                     <textarea name="map_system_prompt" rows="8" class="map-textarea"><?php echo esc_textarea($systemPrompt); ?></textarea>
                                     <p class="map-helper" style="color:#d97706;">⚠️ Mantenha as instruções sobre JSON para garantir compatibilidade.</p>
+                                    <p class="map-helper">Para cargas pesadas, considere enfileirar a geração via Action Scheduler ou outro job assíncrono para evitar bloqueio da requisição do navegador.</p>
                                 </div>
                                 <?php
                             });

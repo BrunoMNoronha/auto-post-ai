@@ -29,6 +29,7 @@ class Settings
         register_setting($group, 'map_idioma2', 'sanitize_text_field');
         register_setting($group, 'map_estilo2', 'sanitize_text_field');
         register_setting($group, 'map_tom', 'sanitize_text_field');
+        register_setting($group, 'map_request_timeout', ['sanitize_callback' => [$this, 'sanitizarRequestTimeout']]);
         register_setting($group, 'map_max_tokens', ['sanitize_callback' => [$this, 'sanitizarMaxTokens']]);
         register_setting($group, 'map_modelo_ia', ['sanitize_callback' => [$this, 'sanitizarModeloIA']]);
         register_setting($group, 'map_temperatura', ['sanitize_callback' => [$this, 'sanitizarTemperatura']]);
@@ -70,6 +71,13 @@ class Settings
     public function sanitizarPalavrasPorParagrafo(mixed $value): int
     {
         return max(50, min(400, absint($value)));
+    }
+
+    public function sanitizarRequestTimeout(mixed $value): int
+    {
+        $timeout = is_numeric($value) ? (int) $value : 120;
+
+        return max(30, min(600, $timeout));
     }
 
     public function sanitizarMaxTokens(mixed $value): int

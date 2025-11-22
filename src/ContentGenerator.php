@@ -93,7 +93,9 @@ EOD;
             'temperature' => $temperatura,
         ];
 
-        $timeout = $maxTokens > 2000 ? 120 : 60;
+        $baseTimeout = (int) $this->optionsRepository->getOption('map_request_timeout', 120);
+        $timeout = $maxTokens > 2000 ? max($baseTimeout, (int) ceil($baseTimeout * 1.5)) : $baseTimeout;
+        $timeout = min($timeout, 600);
 
         $response = $this->httpClient->post('https://api.openai.com/v1/chat/completions', [
             'headers' => ['Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $key],
