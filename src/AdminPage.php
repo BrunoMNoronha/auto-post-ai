@@ -44,8 +44,8 @@ class AdminPage
     public function adicionarMenuPrincipal(): void
     {
         add_menu_page(
-            'Auto Post AI',
-            'Auto Post AI',
+            __('Auto Post AI', 'auto-post-ai'),
+            __('Auto Post AI', 'auto-post-ai'),
             'manage_options',
             'auto-post-ai',
             [$this, 'renderizarPagina'],
@@ -55,8 +55,8 @@ class AdminPage
 
         add_submenu_page(
             'auto-post-ai',
-            'Automação',
-            'Automação',
+            __('Automação', 'auto-post-ai'),
+            __('Automação', 'auto-post-ai'),
             'manage_options',
             'auto-post-ai-automacao',
             [$this, 'renderizarAutomacao']
@@ -64,8 +64,8 @@ class AdminPage
 
         add_submenu_page(
             'auto-post-ai',
-            'Histórico de Uso',
-            'Histórico de Uso',
+            __('Histórico de Uso', 'auto-post-ai'),
+            __('Histórico de Uso', 'auto-post-ai'),
             'manage_options',
             'auto-post-ai-historico',
             [$this, 'renderizarHistorico']
@@ -124,22 +124,22 @@ class AdminPage
             <div class="map-header">
                 <div class="map-title">
                     <span class="dashicons dashicons-chart-line" style="font-size:32px; width:32px; height:32px;"></span>
-                    Histórico de Uso <span class="map-badge">IA</span>
+                    <?php echo esc_html__('Histórico de Uso', 'auto-post-ai'); ?> <span class="map-badge">IA</span>
                 </div>
             </div>
 
             <div class="map-card">
-                <h2>Filtros</h2>
+                <h2><?php echo esc_html__('Filtros', 'auto-post-ai'); ?></h2>
                 <form method="get" class="map-inline-form">
                     <input type="hidden" name="page" value="auto-post-ai-historico" />
-                    <label class="map-label" style="margin:0;">Período</label>
+                    <label class="map-label" style="margin:0;"><?php echo esc_html__('Período', 'auto-post-ai'); ?></label>
                     <select name="periodo" aria-label="Período rápido">
                         <?php
                         $opcoes = [
-                            '7' => 'Últimos 7 dias',
-                            '30' => 'Últimos 30 dias',
-                            '90' => 'Últimos 90 dias',
-                            'custom' => 'Personalizado',
+                            '7' => __('Últimos 7 dias', 'auto-post-ai'),
+                            '30' => __('Últimos 30 dias', 'auto-post-ai'),
+                            '90' => __('Últimos 90 dias', 'auto-post-ai'),
+                            'custom' => __('Personalizado', 'auto-post-ai'),
                         ];
                         foreach ($opcoes as $valor => $label) {
                             printf('<option value="%s" %s>%s</option>', esc_attr($valor), selected($periodo, $valor, false), esc_html($label));
@@ -147,45 +147,49 @@ class AdminPage
                         ?>
                     </select>
 
-                    <label class="map-label" style="margin:0;">De</label>
+                    <label class="map-label" style="margin:0;"><?php echo esc_html__('De', 'auto-post-ai'); ?></label>
                     <input type="date" name="data_inicio" value="<?php echo esc_attr($dataInicio); ?>" />
-                    <label class="map-label" style="margin:0;">Até</label>
+                    <label class="map-label" style="margin:0;"><?php echo esc_html__('Até', 'auto-post-ai'); ?></label>
                     <input type="date" name="data_fim" value="<?php echo esc_attr($dataFim); ?>" />
 
-                    <button type="submit" class="button button-primary">Aplicar</button>
+                    <button type="submit" class="button button-primary"><?php echo esc_html__('Aplicar', 'auto-post-ai'); ?></button>
                 </form>
             </div>
 
             <div class="map-card">
-                <h2>Resumo</h2>
+                <h2><?php echo esc_html__('Resumo', 'auto-post-ai'); ?></h2>
                 <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:20px;">
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;">Total de Tokens</p>
+                        <p class="map-label" style="margin-bottom:6px;"><?php echo esc_html__('Total de Tokens', 'auto-post-ai'); ?></p>
                         <div class="map-title" style="font-size:22px;"><?php echo number_format($totalTokens); ?></div>
                     </div>
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;">Valor Aproximado</p>
+                        <p class="map-label" style="margin-bottom:6px;">
+                            <?php echo esc_html__('Valor Aproximado', 'auto-post-ai'); ?>
+                        </p>
                         <div class="map-title" style="font-size:22px;">$<?php echo number_format($totalCusto, 4); ?></div>
                     </div>
                     <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
-                        <p class="map-label" style="margin-bottom:6px;">Entradas no Período</p>
+                        <p class="map-label" style="margin-bottom:6px;">
+                            <?php echo esc_html__('Entradas no Período', 'auto-post-ai'); ?>
+                        </p>
                         <div class="map-title" style="font-size:22px;"><?php echo number_format((int) $totalRegistros); ?></div>
                     </div>
                 </div>
             </div>
 
             <div class="map-card">
-                <h2>Detalhamento</h2>
+                <h2><?php echo esc_html__('Detalhamento', 'auto-post-ai'); ?></h2>
                 <?php if (empty($historico)) : ?>
-                    <p class="map-helper">Nenhum registro encontrado para o período informado.</p>
+                    <p class="map-helper"><?php echo esc_html__('Nenhum registro encontrado para o período informado.', 'auto-post-ai'); ?></p>
                 <?php else : ?>
                     <table class="map-table">
                         <thead>
                             <tr>
-                                <th>Data/Hora</th>
-                                <th>Modelo</th>
-                                <th>Tokens</th>
-                                <th>Valor Aproximado</th>
+                                <th><?php echo esc_html__('Data/Hora', 'auto-post-ai'); ?></th>
+                                <th><?php echo esc_html__('Modelo', 'auto-post-ai'); ?></th>
+                                <th><?php echo esc_html__('Tokens', 'auto-post-ai'); ?></th>
+                                <th><?php echo esc_html__('Valor Aproximado', 'auto-post-ai'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -194,9 +198,13 @@ class AdminPage
                                     <td><?php echo esc_html(date_i18n('d/m/Y H:i', (int) $registro['timestamp'])); ?></td>
                                     <td><span class="map-chip"><?php echo esc_html($registro['model']); ?></span></td>
                                     <td>
-                                        <div class="map-badge map-badge-muted">Prompt: <?php echo number_format((int) $registro['prompt_tokens']); ?></div>
-                                        <div class="map-badge map-badge-muted" style="margin-left:6px;">Geração: <?php echo number_format((int) $registro['completion_tokens']); ?></div>
-                                        <div class="map-helper" style="margin-top:4px;">Total: <?php echo number_format((int) $registro['total_tokens']); ?></div>
+                                        <div class="map-badge map-badge-muted"><?php echo esc_html__('Prompt:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['prompt_tokens']); ?></div>
+                                        <div class="map-badge map-badge-muted" style="margin-left:6px;">
+                                            <?php echo esc_html__('Geração:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['completion_tokens']); ?>
+                                        </div>
+                                        <div class="map-helper" style="margin-top:4px;">
+                                            <?php echo esc_html__('Total:', 'auto-post-ai'); ?> <?php echo number_format((int) $registro['total_tokens']); ?>
+                                        </div>
                                     </td>
                                 <td>$<?php echo number_format((float) $registro['cost'], 6); ?></td>
                             </tr>
@@ -216,8 +224,8 @@ class AdminPage
                             'format' => '',
                             'current' => $paginaAtual,
                             'total' => $totalPaginas,
-                            'prev_text' => '&laquo; Anterior',
-                            'next_text' => 'Próxima &raquo;',
+                            'prev_text' => sprintf('&laquo; %s', esc_html__('Anterior', 'auto-post-ai')),
+                            'next_text' => sprintf('%s &raquo;', esc_html__('Próxima', 'auto-post-ai')),
                         ]);
 
                         if ($links) {
