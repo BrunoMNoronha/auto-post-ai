@@ -36,6 +36,12 @@ class Scheduler
 
         if ($usarImagem && !empty($conteudo['image_prompt'])) {
             $imgUrl = $this->imageGenerator->gerarImagem((string) $conteudo['image_prompt']);
+
+            if (is_wp_error($imgUrl)) {
+                error_log('Auto Post AI - Falha ao gerar imagem na automação: ' . $imgUrl->get_error_message());
+
+                return;
+            }
         }
 
         $publicarAutomatico = $this->optionsRepository->getOption('map_auto_publicar', 'nao') === 'sim';
