@@ -89,8 +89,8 @@
                 action: MAP_ADMIN.action_preview,
                 nonce: MAP_ADMIN.nonce,
                 tema: $('input[name="map_tema"]').val(),
-                idioma: $('select[name="map_idioma2"]').val(),
-                estilo: $('select[name="map_estilo2"]').val(),
+                idioma: $('select[name="map_idioma"]').val(),
+                estilo: $('select[name="map_estilo"]').val(),
                 tom: $('select[name="map_tom"]').val(),
                 qtd_paragrafos: $('input[name="map_qtd_paragrafos"]').val(),
                 palavras_por_paragrafo: $('input[name="map_palavras_por_paragrafo"]').val(),
@@ -122,8 +122,8 @@
                     $('#map-preview-tags').html(tagsHtml || '<span class="map-helper">Nenhuma</span>');
 
                     // Config info
-                    const idiomaSel = $('select[name="map_idioma2"] option:selected').text();
-                    const estiloSel = $('select[name="map_estilo2"] option:selected').text();
+                    const idiomaSel = $('select[name="map_idioma"] option:selected').text();
+                    const estiloSel = $('select[name="map_estilo"] option:selected').text();
                     $('#map-preview-config').text(`${idiomaSel} • ${estiloSel}`);
                     $('#map-preview-image-info').text(d.image_prompt || 'N/A');
 

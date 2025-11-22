@@ -340,8 +340,8 @@ class AdminPage
 
         $qtdParagrafos = $this->optionsRepository->getOption('map_qtd_paragrafos', 3);
         $palavrasPorParagrafo = $this->optionsRepository->getOption('map_palavras_por_paragrafo', 120);
-        $idiomaSel = $this->optionsRepository->getOption('map_idioma2', $this->optionsRepository->getOption('map_idioma', 'pt-BR'));
-        $estiloSel = $this->optionsRepository->getOption('map_estilo2', $this->optionsRepository->getOption('map_estilo', 'Informativo'));
+        $idiomaSel = $this->optionsRepository->getOption('map_idioma', $this->optionsRepository->getOption('map_idioma', 'pt-BR'));
+        $estiloSel = $this->optionsRepository->getOption('map_estilo', $this->optionsRepository->getOption('map_estilo', 'Informativo'));
         $tomSel = $this->optionsRepository->getOption('map_tom', 'Neutro');
         $maxTokens = $this->optionsRepository->getOption('map_max_tokens', 1500);
         $requestTimeout = $this->optionsRepository->getOption('map_request_timeout', 120);
@@ -523,7 +523,7 @@ class AdminPage
                                 <div class="map-compact-grid">
                                     <div class="map-form-group">
                                         <label class="map-label">Idioma</label>
-                                        <select name="map_idioma2" class="map-select">
+                                        <select name="map_idioma" class="map-select">
                                             <?php
                                             $idiomas = ['pt-BR' => 'Português (BR)', 'pt-PT' => 'Português (PT)', 'en-US' => 'Inglês (US)', 'es-ES' => 'Espanhol', 'fr-FR' => 'Francês', 'de-DE' => 'Alemão'];
                                             foreach ($idiomas as $key => $label) {
@@ -534,7 +534,7 @@ class AdminPage
                                     </div>
                                     <div class="map-form-group">
                                         <label class="map-label">Estilo de Escrita</label>
-                                        <select name="map_estilo2" class="map-select">
+                                        <select name="map_estilo" class="map-select">
                                             <?php
                                             $estilos = ['Informativo' => 'Informativo', 'Conversacional' => 'Conversacional', 'Técnico' => 'Técnico', 'Persuasivo' => 'Persuasivo', 'Criativo' => 'Criativo'];
                                             foreach ($estilos as $key => $label) {

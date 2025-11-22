@@ -26,8 +26,8 @@ class ContentGenerator
         }
 
         $tema = $overrides['tema'] ?? $this->optionsRepository->getOption('map_tema', 'Tecnologia');
-        $idioma = $overrides['idioma'] ?? $this->optionsRepository->getOption('map_idioma2', 'pt-BR');
-        $estilo = $overrides['estilo'] ?? $this->optionsRepository->getOption('map_estilo2', 'Informativo');
+        $idioma = $overrides['idioma'] ?? $this->optionsRepository->getOption('map_idioma', 'pt-BR');
+        $estilo = $overrides['estilo'] ?? $this->optionsRepository->getOption('map_estilo', 'Informativo');
         $tom = $overrides['tom'] ?? $this->optionsRepository->getOption('map_tom', 'Neutro');
         $qtd = (int) ($overrides['qtd_paragrafos'] ?? $this->optionsRepository->getOption('map_qtd_paragrafos', 3));
         $palavras = (int) ($overrides['palavras_por_paragrafo'] ?? $this->optionsRepository->getOption('map_palavras_por_paragrafo', 120));
