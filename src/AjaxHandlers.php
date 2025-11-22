@@ -132,7 +132,13 @@ class AjaxHandlers
 
         $gerarImagem = $this->optionsRepository->getOption('map_gerar_imagem_auto') === 'sim';
         $imgUrl = false;
-        if ($gerarImagem && !empty($data['image_prompt'])) {
+
+        // CORREÇÃO: Prioridade para a URL já existente no preview (passada via payload)
+        if (!empty($data['image_preview_url'])) {
+            $imgUrl = (string) $data['image_preview_url'];
+        } 
+        // Fallback: Gera nova imagem apenas se não houver URL anterior E a configuração permitir
+        elseif ($gerarImagem && !empty($data['image_prompt'])) {
             $imgUrl = $this->imageGenerator->gerarImagem((string) $data['image_prompt']);
 
             if (is_wp_error($imgUrl)) {
