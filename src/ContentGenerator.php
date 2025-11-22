@@ -9,7 +9,8 @@ class ContentGenerator
     public function __construct(
         private HttpClient $httpClient,
         private OptionsRepository $optionsRepository,
-        private ApiKeyProvider $apiKeyProvider
+        private ApiKeyProvider $apiKeyProvider,
+        private UsageTracker $usageTracker
     ) {
     }
 
@@ -108,6 +109,12 @@ EOD;
         }
 
         $content = $decoded['choices'][0]['message']['content'];
+        $usage = $decoded['usage'] ?? [];
+        $promptTokens = (int) ($usage['prompt_tokens'] ?? 0);
+        $completionTokens = (int) ($usage['completion_tokens'] ?? 0);
+        $model = (string) ($decoded['model'] ?? '');
+
+        $this->usageTracker->registrarUso($model, $promptTokens, $completionTokens);
         if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
             $json = json_decode($matches[0], true);
             if (is_array($json)) {

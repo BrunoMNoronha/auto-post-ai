@@ -6,8 +6,10 @@ namespace AutoPostAI;
 
 class AdminPage
 {
-    public function __construct(private OptionsRepository $optionsRepository)
-    {
+    public function __construct(
+        private OptionsRepository $optionsRepository,
+        private UsageTracker $usageTracker
+    ) {
     }
 
     private function isPluginScreen(?\WP_Screen $screen): bool
@@ -15,6 +17,7 @@ class AdminPage
         $screenIds = [
             'toplevel_page_auto-post-ai',
             'auto-post-ai_page_auto-post-ai-automacao',
+            'auto-post-ai_page_auto-post-ai-historico',
         ];
 
         return $screen !== null && in_array($screen->id, $screenIds, true);
@@ -39,6 +42,15 @@ class AdminPage
             'manage_options',
             'auto-post-ai-automacao',
             [$this, 'renderizarAutomacao']
+        );
+
+        add_submenu_page(
+            'auto-post-ai',
+            'Histórico de Uso',
+            'Histórico de Uso',
+            'manage_options',
+            'auto-post-ai-historico',
+            [$this, 'renderizarHistorico']
         );
     }
 
@@ -76,6 +88,13 @@ class AdminPage
             .api-status { margin-left: 10px; font-weight: 600; font-size: 13px; }
             .status-ok { color: #10b981; }
             .status-error { color: #ef4444; }
+            .map-table { width: 100%; border-collapse: collapse; }
+            .map-table th, .map-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+            .map-table th { background: #f9fafb; font-weight: 700; color: #374151; }
+            .map-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-weight: 600; font-size: 12px; }
+            .map-badge-muted { background: #f3f4f6; color: #4b5563; }
+            .map-inline-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+            .map-inline-form input[type="date"], .map-inline-form select { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
         </style>
         <?php
     }
@@ -96,6 +115,117 @@ class AdminPage
             'action_publish' => 'map_publicar_from_preview',
             'action_test_api' => 'map_testar_conexao',
         ]);
+    }
+
+    public function renderizarHistorico(): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $periodo = sanitize_text_field($_GET['periodo'] ?? '7');
+        $dataInicio = sanitize_text_field($_GET['data_inicio'] ?? '');
+        $dataFim = sanitize_text_field($_GET['data_fim'] ?? '');
+
+        $hoje = date('Y-m-d');
+        if ($periodo !== 'custom') {
+            $dias = max(1, (int) $periodo);
+            $dataInicio = date('Y-m-d', strtotime("-{$dias} days"));
+            $dataFim = $hoje;
+        }
+
+        $historico = $this->usageTracker->getHistorico($dataInicio, $dataFim);
+        $totalTokens = array_sum(array_column($historico, 'total_tokens'));
+        $totalCusto = array_sum(array_column($historico, 'cost'));
+
+        ?>
+        <div class="wrap map-wrap">
+            <div class="map-header">
+                <div class="map-title">
+                    <span class="dashicons dashicons-chart-line" style="font-size:32px; width:32px; height:32px;"></span>
+                    Histórico de Uso <span class="map-badge">IA</span>
+                </div>
+            </div>
+
+            <div class="map-card">
+                <h2>Filtros</h2>
+                <form method="get" class="map-inline-form">
+                    <input type="hidden" name="page" value="auto-post-ai-historico" />
+                    <label class="map-label" style="margin:0;">Período</label>
+                    <select name="periodo" aria-label="Período rápido">
+                        <?php
+                        $opcoes = [
+                            '7' => 'Últimos 7 dias',
+                            '30' => 'Últimos 30 dias',
+                            '90' => 'Últimos 90 dias',
+                            'custom' => 'Personalizado',
+                        ];
+                        foreach ($opcoes as $valor => $label) {
+                            printf('<option value="%s" %s>%s</option>', esc_attr($valor), selected($periodo, $valor, false), esc_html($label));
+                        }
+                        ?>
+                    </select>
+
+                    <label class="map-label" style="margin:0;">De</label>
+                    <input type="date" name="data_inicio" value="<?php echo esc_attr($dataInicio); ?>" />
+                    <label class="map-label" style="margin:0;">Até</label>
+                    <input type="date" name="data_fim" value="<?php echo esc_attr($dataFim); ?>" />
+
+                    <button type="submit" class="button button-primary">Aplicar</button>
+                </form>
+            </div>
+
+            <div class="map-card">
+                <h2>Resumo</h2>
+                <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:20px;">
+                    <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
+                        <p class="map-label" style="margin-bottom:6px;">Total de Tokens</p>
+                        <div class="map-title" style="font-size:22px;"><?php echo number_format($totalTokens); ?></div>
+                    </div>
+                    <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
+                        <p class="map-label" style="margin-bottom:6px;">Valor Aproximado</p>
+                        <div class="map-title" style="font-size:22px;">$<?php echo number_format($totalCusto, 4); ?></div>
+                    </div>
+                    <div class="map-card" style="margin:0; box-shadow:none; border:1px solid #e5e7eb;">
+                        <p class="map-label" style="margin-bottom:6px;">Entradas no Período</p>
+                        <div class="map-title" style="font-size:22px;"><?php echo count($historico); ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-card">
+                <h2>Detalhamento</h2>
+                <?php if (empty($historico)) : ?>
+                    <p class="map-helper">Nenhum registro encontrado para o período informado.</p>
+                <?php else : ?>
+                    <table class="map-table">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Modelo</th>
+                                <th>Tokens</th>
+                                <th>Valor Aproximado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($historico as $registro) : ?>
+                                <tr>
+                                    <td><?php echo esc_html(date_i18n('d/m/Y H:i', (int) $registro['timestamp'])); ?></td>
+                                    <td><span class="map-chip"><?php echo esc_html($registro['model']); ?></span></td>
+                                    <td>
+                                        <div class="map-badge map-badge-muted">Prompt: <?php echo number_format((int) $registro['prompt_tokens']); ?></div>
+                                        <div class="map-badge map-badge-muted" style="margin-left:6px;">Geração: <?php echo number_format((int) $registro['completion_tokens']); ?></div>
+                                        <div class="map-helper" style="margin-top:4px;">Total: <?php echo number_format((int) $registro['total_tokens']); ?></div>
+                                    </td>
+                                    <td>$<?php echo number_format((float) $registro['cost'], 6); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php
     }
 
     public function renderizarAutomacao(): void

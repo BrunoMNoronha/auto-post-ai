@@ -11,6 +11,7 @@ class Container
     private ?HttpClient $httpClient = null;
     private ?ApiKeyProvider $apiKeyProvider = null;
     private ?ContentGenerator $contentGenerator = null;
+    private ?UsageTracker $usageTracker = null;
     private ?ImageGenerator $imageGenerator = null;
     private ?PostPublisher $postPublisher = null;
     private ?AdminPage $adminPage = null;
@@ -57,10 +58,24 @@ class Container
     public function getContentGenerator(): ContentGenerator
     {
         if ($this->contentGenerator === null) {
-            $this->contentGenerator = new ContentGenerator($this->getHttpClient(), $this->getOptionsRepository(), $this->getApiKeyProvider());
+            $this->contentGenerator = new ContentGenerator(
+                $this->getHttpClient(),
+                $this->getOptionsRepository(),
+                $this->getApiKeyProvider(),
+                $this->getUsageTracker()
+            );
         }
 
         return $this->contentGenerator;
+    }
+
+    public function getUsageTracker(): UsageTracker
+    {
+        if ($this->usageTracker === null) {
+            $this->usageTracker = new UsageTracker($this->getOptionsRepository());
+        }
+
+        return $this->usageTracker;
     }
 
     public function getImageGenerator(): ImageGenerator
@@ -84,7 +99,7 @@ class Container
     public function getAdminPage(): AdminPage
     {
         if ($this->adminPage === null) {
-            $this->adminPage = new AdminPage($this->getOptionsRepository());
+            $this->adminPage = new AdminPage($this->getOptionsRepository(), $this->getUsageTracker());
         }
 
         return $this->adminPage;
