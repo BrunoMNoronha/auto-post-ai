@@ -43,6 +43,6 @@ add_action('wp_ajax_map_publicar_from_preview', [$container->getAjaxHandlers(), 
 add_action('wp_ajax_map_testar_conexao', [$container->getAjaxHandlers(), 'testarConexao']);
 
 // Ciclo de vida
-register_activation_hook(__FILE__, [$container->getScheduler(), 'ativar']);
-register_deactivation_hook(__FILE__, [$container->getScheduler(), 'desativar']);
-register_uninstall_hook(__FILE__, [$container->getScheduler(), 'excluirDados']);
+register_activation_hook(__FILE__, [$container->getLifecycle(), 'ativar']);
+register_deactivation_hook(__FILE__, [$container->getLifecycle(), 'desativar']);
+register_uninstall_hook(__FILE__, [$container->getLifecycle(), 'excluirDados']);
