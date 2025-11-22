@@ -27,8 +27,8 @@ class Settings
 
         register_setting($mainGroup, 'map_qtd_paragrafos', ['sanitize_callback' => [$this, 'sanitizarQtdParagrafos']]);
         register_setting($mainGroup, 'map_palavras_por_paragrafo', ['sanitize_callback' => [$this, 'sanitizarPalavrasPorParagrafo']]);
-        register_setting($mainGroup, 'map_idioma2', 'sanitize_text_field');
-        register_setting($mainGroup, 'map_estilo2', 'sanitize_text_field');
+        register_setting($mainGroup, 'map_idioma', 'sanitize_text_field');
+        register_setting($mainGroup, 'map_estilo', 'sanitize_text_field');
         register_setting($mainGroup, 'map_tom', 'sanitize_text_field');
         register_setting($mainGroup, 'map_request_timeout', ['sanitize_callback' => [$this, 'sanitizarRequestTimeout']]);
         register_setting($mainGroup, 'map_max_tokens', ['sanitize_callback' => [$this, 'sanitizarMaxTokens']]);
