@@ -676,7 +676,7 @@ class AdminPage
                                 <div class="map-form-group">
                                     <label class="map-label">API Key (Configurações)</label>
                                     <div style="display:flex; gap:10px; align-items:center;">
-                                        <input type="password" name="map_api_key" id="map_api_key_input" placeholder="<?php echo !empty($chaveSalva) ? 'Chave guardada. Escreva para alterar.' : 'sk-...'; ?>" class="map-input" />
+                                        <input type="password" name="map_api_key" id="map_api_key_input" placeholder="<?php echo !empty($chaveSalva) ? 'Chave guardada. Escreva para alterar.' : 'sk-...'; ?>" class="map-input" autocomplete="new-password" data-lpignore="true" />
                                         <button type="button" id="map-test-api" class="button">Testar</button>
                                     </div>
                                     <p class="map-helper">A chave é encriptada (AES-256). <span id="map-api-test-msg" class="api-status"></span></p>
