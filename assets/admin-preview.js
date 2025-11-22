@@ -77,13 +77,92 @@
             });
         });
 
-        // 2. Gerar Preview
+        // Função para renderizar o resultado (extraída para reuso)
+        function renderResult(d) {
+            // Renderiza Preview Texto
+            $('#map-preview-title').text(d.titulo || 'Sem título');
+            $('#map-preview-content').html(d.conteudo_html || ''); 
+            
+            // Atualiza Imagem
+            const $cover = $('#map-preview-image');
+            if (d.image_preview_url) {
+                $cover.css('background-image', `url(${d.image_preview_url})`).html('<span class="map-cover-badge">Imagem Gerada</span>');
+            } else {
+                $cover.css('background-image', 'none').html('<span class="map-cover-badge" style="background:#f3f4f6; color:#666;">Sem imagem</span>');
+            }
+            
+            // Alerta se houve erro específico na imagem
+            if (d.image_preview_error) {
+                 console.warn('Aviso Imagem IA:', d.image_preview_error);
+                 // Não usamos alert aqui para não interromper o fluxo visual do usuário
+            }
+
+            // Sidebar Info
+            $('#map-preview-serp-title').text(d.titulo || 'Título');
+            $('#map-preview-serp-desc').text(d.seo_desc || 'Descrição não disponível.');
+            
+            const tagsHtml = (d.tags || []).map(t => `<span class="map-chip">${escapeHtml(t)}</span>`).join(' ');
+            $('#map-preview-tags').html(tagsHtml || '<span class="map-helper">Nenhuma</span>');
+
+            // Config info
+            const idiomaSel = $('select[name="map_idioma"] option:selected').text();
+            const estiloSel = $('select[name="map_estilo"] option:selected').text();
+            $('#map-preview-config').text(`${idiomaSel} • ${estiloSel}`);
+            $('#map-preview-image-info').text(d.image_prompt || 'N/A');
+
+            // URL Falsa
+            const slug = slugify(d.titulo);
+            $urlDisplay.text(`${MAP_ADMIN.site_url.replace('https://','').replace('http://','')}/blog/${slug}`);
+
+            // Mostra container
+            $placeholder.hide();
+            $previewContainer.data('payload', JSON.stringify(d)).fadeIn();
+            
+            // Reset para primeira aba
+            $tabButtons.first().trigger('click'); 
+            $editorField.val(''); // Limpa editor manual
+        }
+
+        // Função Polling Recursiva
+        function pollStatus(jobId, $btn) {
+            setTimeout(function() {
+                $.post(MAP_ADMIN.ajax_url, {
+                    action: MAP_ADMIN.action_check_status,
+                    nonce: MAP_ADMIN.nonce,
+                    job_id: jobId
+                }, function(resp) {
+                    if (resp.success) {
+                        // Se status é processing, ainda não acabou, tenta de novo
+                        if (resp.data.status && resp.data.status === 'processing') {
+                            pollStatus(jobId, $btn);
+                        } else {
+                            // Acabou! resp.data contém o objeto do post (titulo, conteudo, etc)
+                            setLoading($btn, false, '', 'Gerar e Pré-visualizar');
+                            renderResult(resp.data);
+                        }
+                    } else {
+                        // Erro retornado pelo backend (ex: job falhou)
+                        setLoading($btn, false, '', 'Gerar e Pré-visualizar');
+                        $placeholder.text('Erro: ' + (resp.data || 'Falha no processamento.'));
+                        $placeholder.show();
+                    }
+                }, 'json').fail(function() {
+                    // Erro de rede no polling. 
+                    // Em produção idealmente teríamos retry com backoff, mas aqui paramos para não loopar erro.
+                    setLoading($btn, false, '', 'Gerar e Pré-visualizar');
+                    $placeholder.text('Erro de conexão ao verificar status. Tente novamente.');
+                    $placeholder.show();
+                });
+            }, 3000); // Intervalo de 3 segundos
+        }
+
+        // 2. Gerar Preview (Botão Principal)
         $('#map-generate-preview').on('click', function(){
             const $btn = $(this);
-            setLoading($btn, true, 'Gerando Inteligência...', 'Gerar e Pré-visualizar');
+            setLoading($btn, true, 'Iniciando IA...', 'Gerar e Pré-visualizar');
 
             $previewContainer.hide();
-            $placeholder.show().text('A gerar conteúdo, aguarde...');
+            $placeholder.show().text('Enviando para a fila de processamento...');
             
             const data = {
                 action: MAP_ADMIN.action_preview,
@@ -97,49 +176,17 @@
                 max_tokens: $('input[name="map_max_tokens"]').val()
             };
 
+            // Inicia o Job
             $.post(MAP_ADMIN.ajax_url, data, function(resp){
-                setLoading($btn, false, '', 'Gerar e Pré-visualizar');
                 if ( resp.success ) {
-                    const d = resp.data;
+                    const jobId = resp.data.job_id;
+                    $placeholder.text('A IA está escrevendo... (Isso pode levar alguns segundos)');
                     
-                    // Renderiza Preview
-                    $('#map-preview-title').text(d.titulo || 'Sem título');
-                    $('#map-preview-content').html(d.conteudo_html || ''); 
-                    
-                    // Atualiza Imagem
-                    const $cover = $('#map-preview-image');
-                    if (d.image_preview_url) {
-                        $cover.css('background-image', `url(${d.image_preview_url})`).html('<span class="map-cover-badge">Imagem Gerada</span>');
-                    } else {
-                        $cover.css('background-image', 'none').html('<span class="map-cover-badge" style="background:#f3f4f6; color:#666;">Sem imagem</span>');
-                    }
-
-                    // Sidebar Info
-                    $('#map-preview-serp-title').text(d.titulo || 'Título');
-                    $('#map-preview-serp-desc').text(d.seo_desc || 'Descrição não disponível.');
-                    
-                    const tagsHtml = (d.tags || []).map(t => `<span class="map-chip">${escapeHtml(t)}</span>`).join(' ');
-                    $('#map-preview-tags').html(tagsHtml || '<span class="map-helper">Nenhuma</span>');
-
-                    // Config info
-                    const idiomaSel = $('select[name="map_idioma"] option:selected').text();
-                    const estiloSel = $('select[name="map_estilo"] option:selected').text();
-                    $('#map-preview-config').text(`${idiomaSel} • ${estiloSel}`);
-                    $('#map-preview-image-info').text(d.image_prompt || 'N/A');
-
-                    // URL Falsa
-                    const slug = slugify(d.titulo);
-                    $urlDisplay.text(`${MAP_ADMIN.site_url.replace('https://','').replace('http://','')}/blog/${slug}`);
-
-                    // Mostra container
-                    $placeholder.hide();
-                    $previewContainer.data('payload', JSON.stringify(d)).fadeIn();
-                    
-                    // Reset para primeira aba
-                    $tabButtons.first().trigger('click'); 
-                    $editorField.val(''); // Limpa editor manual
+                    // Começa a verificar se está pronto
+                    pollStatus(jobId, $btn);
 
                 } else {
+                    setLoading($btn, false, '', 'Gerar e Pré-visualizar');
                     $placeholder.text('Erro: ' + (resp.data || 'Falha na geração'));
                     alert('Erro: ' + (resp.data || 'Falha na geração'));
                 }

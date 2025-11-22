@@ -12,7 +12,8 @@ class AjaxHandlers
         private PostPublisher $postPublisher,
         private OptionsRepository $optionsRepository,
         private ApiKeyProvider $apiKeyProvider,
-        private HttpClient $httpClient
+        private HttpClient $httpClient,
+        private JobQueue $jobQueue
     ) {
     }
 
@@ -72,28 +73,46 @@ class AjaxHandlers
             'max_tokens' => absint($_POST['max_tokens'] ?? 800),
         ];
 
-        $data = $this->contentGenerator->gerarConteudo($overrides, true);
+        // MUDANÇA IMPORTANTE: Processamento Async
+        // Ao invés de gerar tudo aqui e arriscar timeout, despachamos para a fila
+        try {
+            $jobId = $this->jobQueue->dispatch($overrides);
+            wp_send_json_success([
+                'job_id' => $jobId,
+                'status' => 'processing',
+                'message' => 'Iniciando processamento em segundo plano...'
+            ]);
+        } catch (\Throwable $e) {
+            wp_send_json_error(__('Falha ao agendar tarefa: ' . $e->getMessage(), 'auto-post-ai'));
+        }
+    }
 
-        if (is_wp_error($data)) {
-            wp_send_json_error(__($data->get_error_message(), 'auto-post-ai'));
+    /**
+     * Novo endpoint para o JS verificar periodicamente se o job terminou
+     */
+    public function verificarStatusGeracao(): void
+    {
+        check_ajax_referer('map_preview_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(__('Permissão negada', 'auto-post-ai'));
         }
 
-        $gerarImagemAuto = $this->optionsRepository->getOption('map_gerar_imagem_auto') === 'sim';
-        if ($gerarImagemAuto && is_array($data) && !empty($data['image_prompt'])) {
-            $imageResult = $this->imageGenerator->gerarImagem((string) $data['image_prompt']);
-
-            if (is_wp_error($imageResult)) {
-                error_log('Auto Post AI - Falha ao gerar imagem na prévia: ' . $imageResult->get_error_message());
-                $data['image_preview_error'] = $imageResult->get_error_message();
-                $data['image_preview_url'] = null;
-            } elseif (is_string($imageResult) && $imageResult !== '') {
-                $data['image_preview_url'] = $imageResult;
-            } else {
-                $data['image_preview_url'] = null;
-            }
+        $jobId = sanitize_text_field($_POST['job_id'] ?? '');
+        if (!$jobId) {
+            wp_send_json_error(__('ID do Job ausente.', 'auto-post-ai'));
         }
 
-        wp_send_json_success($data);
+        $status = $this->jobQueue->getStatus($jobId);
+
+        if ($status['status'] === 'completed') {
+            // Se completou, retorna os dados gerados (texto, imagem, etc)
+            wp_send_json_success($status['data']);
+        } elseif ($status['status'] === 'error') {
+            wp_send_json_error($status['message'] ?? 'Erro desconhecido durante o processamento.');
+        } else {
+            // Se ainda está 'processing', avisa o front para continuar esperando
+            wp_send_json_success(['status' => 'processing']);
+        }
     }
 
     public function publicarFromPreview(): void
@@ -133,24 +152,21 @@ class AjaxHandlers
         $gerarImagem = $this->optionsRepository->getOption('map_gerar_imagem_auto') === 'sim';
         $imgUrl = false;
 
-        // CORREÇÃO: Prioridade para a URL já existente no preview (passada via payload)
+        // Se o payload (vindo do preview async) já tem uma URL de imagem, usamos ela
         if (!empty($data['image_preview_url'])) {
-            $imgUrl = (string) $data['image_preview_url'];
+            $imgUrl = $data['image_preview_url'];
         } 
-        // Fallback: Gera nova imagem apenas se não houver URL anterior E a configuração permitir
+        // Caso contrário, se for regeneração ou se não tinha imagem, tentamos gerar agora
         elseif ($gerarImagem && !empty($data['image_prompt'])) {
             $imgUrl = $this->imageGenerator->gerarImagem((string) $data['image_prompt']);
 
             if (is_wp_error($imgUrl)) {
-                error_log('Auto Post AI - Falha ao gerar imagem na prévia: ' . $imgUrl->get_error_message());
-
-                wp_send_json_error(
-                    sprintf(__('Falha ao gerar imagem: %s', 'auto-post-ai'), $imgUrl->get_error_message())
-                );
+                error_log('Auto Post AI - Falha ao gerar imagem na publicação: ' . $imgUrl->get_error_message());
+                // Não retorna erro fatal para não perder o texto, apenas loga.
             }
         }
 
-        $postId = $this->postPublisher->gravarPost($data, $imgUrl, $publish);
+        $postId = $this->postPublisher->gravarPost($data, is_string($imgUrl) ? $imgUrl : false, $publish);
         if (is_wp_error($postId)) {
             wp_send_json_error(sprintf(__('Erro ao salvar: %s', 'auto-post-ai'), $postId->get_error_message()));
         }

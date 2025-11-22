@@ -20,6 +20,7 @@ class Container
     private ?AjaxHandlers $ajaxHandlers = null;
     private ?Scheduler $scheduler = null;
     private ?Lifecycle $lifecycle = null;
+    private ?JobQueue $jobQueue = null;
 
     public function getOptionsRepository(): OptionsRepository
     {
@@ -130,6 +131,19 @@ class Container
         return $this->settings;
     }
 
+    public function getJobQueue(): JobQueue
+    {
+        if ($this->jobQueue === null) {
+            $this->jobQueue = new JobQueue(
+                $this->getContentGenerator(),
+                $this->getImageGenerator(),
+                $this->getOptionsRepository()
+            );
+        }
+
+        return $this->jobQueue;
+    }
+
     public function getAjaxHandlers(): AjaxHandlers
     {
         if ($this->ajaxHandlers === null) {
@@ -139,7 +153,8 @@ class Container
                 $this->getPostPublisher(),
                 $this->getOptionsRepository(),
                 $this->getApiKeyProvider(),
-                $this->getHttpClient()
+                $this->getHttpClient(),
+                $this->getJobQueue()
             );
         }
 

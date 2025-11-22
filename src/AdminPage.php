@@ -72,7 +72,6 @@ class AdminPage
         );
     }
 
-    // Mantido vazio intencionalmente, pois o CSS agora é carregado via arquivo .css
     public function estilosPersonalizados(): void
     {
     }
@@ -84,7 +83,7 @@ class AdminPage
             return;
         }
 
-        // Carrega o novo arquivo CSS
+        // Carrega o arquivo CSS
         $cssPath = plugin_dir_url(__DIR__ . '/../auto-post-ai.php') . 'assets/admin-style.css';
         wp_enqueue_style('map-admin-css', $cssPath, [], '1.4');
 
@@ -98,6 +97,7 @@ class AdminPage
             'action_preview' => 'map_gerar_preview',
             'action_publish' => 'map_publicar_from_preview',
             'action_test_api' => 'map_testar_conexao',
+            'action_check_status' => 'map_verificar_status_geracao', // NOVO ENDPOINT
         ]);
     }
 
