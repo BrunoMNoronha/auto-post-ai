@@ -106,16 +106,17 @@ class AjaxHandlers
         $publish = (($_POST['publish'] ?? '0') === '1');
         $regenerate = (($_POST['regenerate'] ?? '1') === '1');
 
-        if ($regenerate) {
-            $overrides = [
-                'tema' => sanitize_text_field($_POST['tema'] ?? ''),
-                'idioma' => sanitize_text_field($_POST['idioma'] ?? ''),
-                'estilo' => sanitize_text_field($_POST['estilo'] ?? ''),
-                'tom' => sanitize_text_field($_POST['tom'] ?? ''),
-                'qtd_paragrafos' => absint($_POST['qtd_paragrafos'] ?? 3),
-                'palavras_por_paragrafo' => absint($_POST['palavras_por_paragrafo'] ?? 100),
-                'max_tokens' => absint($_POST['max_tokens'] ?? 800),
-            ];
+        $overrides = [
+            'tema' => sanitize_text_field($_POST['tema'] ?? ''),
+            'idioma' => sanitize_text_field($_POST['idioma'] ?? ''),
+            'estilo' => sanitize_text_field($_POST['estilo'] ?? ''),
+            'tom' => sanitize_text_field($_POST['tom'] ?? ''),
+            'qtd_paragrafos' => absint($_POST['qtd_paragrafos'] ?? 3),
+            'palavras_por_paragrafo' => absint($_POST['palavras_por_paragrafo'] ?? 100),
+            'max_tokens' => absint($_POST['max_tokens'] ?? 800),
+        ];
+
+        if ($regenerate || empty($_POST['payload'])) {
             $data = $this->contentGenerator->gerarConteudo($overrides, true);
             if (is_wp_error($data)) {
                 wp_send_json_error(__($data->get_error_message(), 'auto-post-ai'));

@@ -126,22 +126,39 @@
         });
 
         // 3. Publicação / Rascunho
+        const collectConfig = () => ({
+            tema: $('input[name="map_tema"]').val(),
+            idioma: $('select[name="map_idioma2"]').val(),
+            estilo: $('select[name="map_estilo2"]').val(),
+            tom: $('select[name="map_tom"]').val(),
+            qtd_paragrafos: $('input[name="map_qtd_paragrafos"]').val(),
+            palavras_por_paragrafo: $('input[name="map_palavras_por_paragrafo"]').val(),
+            max_tokens: $('input[name="map_max_tokens"]').val()
+        });
+
         const handlePublish = (isPublish) => {
             const $btn = isPublish ? $('#map-publish') : $('#map-save-draft');
             const label = isPublish ? 'Publicar' : 'Rascunho';
             const loadingLabel = isPublish ? 'Publicando...' : 'Salvando...';
 
             const payload = $previewContainer.data('payload');
-            if (!payload) { alert('Gere o conteúdo primeiro.'); return; }
+            const hasPreview = Boolean(payload);
 
-            setLoading($btn, true, loadingLabel, label);
-
-            $.post(MAP_ADMIN.ajax_url, {
+            const requestData = {
                 action: MAP_ADMIN.action_publish,
                 nonce: MAP_ADMIN.nonce,
                 publish: isPublish ? '1' : '0',
-                payload: payload
-            }, function(resp){
+                regenerate: hasPreview ? '0' : '1',
+                ...collectConfig()
+            };
+
+            if (hasPreview) {
+                requestData.payload = payload;
+            }
+
+            setLoading($btn, true, loadingLabel, label);
+
+            $.post(MAP_ADMIN.ajax_url, requestData, function(resp){
                 setLoading($btn, false, '', label);
                 if (resp.success) {
                     alert('Sucesso! Post ID: ' + resp.data.post_id);
