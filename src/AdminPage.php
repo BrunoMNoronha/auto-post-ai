@@ -95,6 +95,41 @@ class AdminPage
             .map-badge-muted { background: #f3f4f6; color: #4b5563; }
             .map-inline-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
             .map-inline-form input[type="date"], .map-inline-form select { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+            .map-preview-card { border: 1px solid #e5e7eb; box-shadow: 0 20px 45px -24px rgba(99,102,241,0.45), 0 8px 24px -20px rgba(0,0,0,0.35); position: relative; overflow: hidden; background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); }
+            .map-preview-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+            .map-eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: #6b7280; margin: 0 0 4px; font-weight: 700; }
+            .map-preview-title { font-size: 20px; margin: 0; color: #111827; }
+            .map-preview-actions { display: flex; gap: 8px; align-items: center; }
+            .map-preview-actions .button { border-radius: 8px; }
+            .map-serp-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; background: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); margin-bottom: 16px; }
+            .map-serp-title { color: #1a0dab; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+            .map-serp-url { color: #0f9d58; font-size: 13px; margin-bottom: 2px; word-break: break-all; }
+            .map-serp-desc { color: #4b5563; font-size: 13px; line-height: 1.5; }
+            .map-tab-nav { display: flex; gap: 8px; margin-bottom: 12px; }
+            .map-tab-btn { padding: 8px 14px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; font-weight: 600; color: #4b5563; transition: all .2s ease; }
+            .map-tab-btn.is-active { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; box-shadow: 0 6px 12px -8px rgba(99,102,241,0.35); }
+            .map-tab-panel { display: none; }
+            .map-tab-panel.is-active { display: block; }
+            .map-article-card { border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 8px 24px -18px rgba(0,0,0,0.4); }
+            .map-cover { position: relative; min-height: 160px; background: radial-gradient(circle at 20% 20%, #e0e7ff, #c7d2fe); display: flex; align-items: flex-end; padding: 18px; color: #1f2937; }
+            .map-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+            .map-cover-badge { background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; color: #4338ca; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 10px 30px -18px rgba(0,0,0,0.6); }
+            .map-article-body { padding: 20px; }
+            .map-article-body h1 { font-size: 24px; margin: 0 0 12px; line-height: 1.2; color: #111827; }
+            .map-article-body h2, .map-article-content h2 { font-size: 18px; margin: 18px 0 8px; color: #111827; }
+            .map-article-body h3, .map-article-content h3 { font-size: 16px; margin: 14px 0 6px; color: #111827; }
+            .map-article-body p, .map-article-content p { line-height: 1.7; color: #1f2937; margin: 0 0 12px; font-size: 14px; }
+            .map-article-body ul, .map-article-content ul { padding-left: 18px; margin: 12px 0; }
+            .map-article-body li, .map-article-content li { margin-bottom: 8px; line-height: 1.6; }
+            .map-article-body strong, .map-article-content strong { color: #111827; }
+            .map-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+            .map-meta-card { border: 1px dashed #d1d5db; border-radius: 12px; padding: 12px; background: #fff; }
+            .map-meta-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; font-weight: 700; display: block; }
+            .map-meta-value { font-weight: 700; color: #111827; margin-bottom: 6px; }
+            .map-meta-note { font-size: 13px; color: #4b5563; margin: 0; }
+            .map-editor-box { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #f9fafb; }
+            .map-editor-box textarea { width: 100%; min-height: 140px; font-family: Menlo, Monaco, Consolas, monospace; border-radius: 8px; border: 1px solid #d1d5db; padding: 10px; }
+            .map-editor-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
         </style>
         <?php
     }
@@ -111,6 +146,7 @@ class AdminPage
         wp_localize_script('map-admin-js', 'MAP_ADMIN', [
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('map_preview_nonce'),
+            'site_url' => get_site_url(),
             'action_preview' => 'map_gerar_preview',
             'action_publish' => 'map_publicar_from_preview',
             'action_test_api' => 'map_testar_conexao',
@@ -457,15 +493,67 @@ class AdminPage
                                 </label>
                             </div>
 
-                            <div id="map-preview-container" class="map-card" style="display:none; margin-top:20px;">
-                                <h2>🔎 Resultado</h2>
-                                <div id="map-preview-title" style="font-weight:700; font-size:18px;margin-bottom:10px;"></div>
-                                <div id="map-preview-image" style="margin-bottom:10px;"></div>
-                                <div id="map-preview-content" style="margin-bottom:10px;"></div>
-                                <div id="map-preview-seo" style="font-size:13px;color:#555;margin-bottom:10px;"></div>
-                                <div style="display:flex; gap:10px;">
-                                    <button type="button" id="map-save-draft" class="button">Rascunho</button>
-                                    <button type="button" id="map-publish" class="button button-primary">Publicar</button>
+                            <div id="map-preview-container" class="map-card map-preview-card" style="display:none; margin-top:20px;">
+                                <div class="map-preview-header">
+                                    <div>
+                                        <p class="map-eyebrow">Painel de Publicação Profissional</p>
+                                        <h2 class="map-preview-title">Pré-visualização premium</h2>
+                                    </div>
+                                    <div class="map-preview-actions">
+                                        <button type="button" id="map-edit-content" class="button">Editar Conteúdo</button>
+                                        <button type="button" id="map-save-draft" class="button">Rascunho</button>
+                                        <button type="button" id="map-publish" class="button button-primary">Publicar</button>
+                                    </div>
+                                </div>
+                                <div class="map-serp-card" aria-label="Prévia Google SERP">
+                                    <div id="map-preview-serp-title" class="map-serp-title"></div>
+                                    <div id="map-preview-serp-url" class="map-serp-url"></div>
+                                    <div id="map-preview-serp-desc" class="map-serp-desc"></div>
+                                </div>
+                                <div class="map-tab-nav" role="tablist">
+                                    <button type="button" class="map-tab-btn is-active" data-tab="conteudo">Conteúdo</button>
+                                    <button type="button" class="map-tab-btn" data-tab="metadados">Metadados</button>
+                                </div>
+                                <div class="map-tab-panel is-active" data-tab="conteudo">
+                                    <div class="map-article-card">
+                                        <div id="map-preview-image" class="map-cover"></div>
+                                        <div class="map-article-body">
+                                            <h1 id="map-preview-title"></h1>
+                                            <div id="map-preview-content" class="map-article-content"></div>
+                                        </div>
+                                    </div>
+                                    <div id="map-editor-box" class="map-editor-box" style="display:none;">
+                                        <label class="map-label" for="map-preview-editor">Ajuste manual do HTML</label>
+                                        <textarea id="map-preview-editor"></textarea>
+                                        <div class="map-editor-actions">
+                                            <button type="button" id="map-cancel-edit" class="button">Cancelar</button>
+                                            <button type="button" id="map-apply-html" class="button button-primary">Aplicar HTML</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="map-tab-panel" data-tab="metadados">
+                                    <div class="map-meta-grid">
+                                        <div class="map-meta-card">
+                                            <span class="map-meta-label">SEO</span>
+                                            <div id="map-preview-seo" class="map-meta-value"></div>
+                                            <p class="map-meta-note">Prévia do snippet entregue pelo modelo.</p>
+                                        </div>
+                                        <div class="map-meta-card">
+                                            <span class="map-meta-label">Tags sugeridas</span>
+                                            <div id="map-preview-tags"></div>
+                                            <p class="map-meta-note">Use como base para categorias e taxonomias.</p>
+                                        </div>
+                                        <div class="map-meta-card">
+                                            <span class="map-meta-label">Imagem de destaque</span>
+                                            <div id="map-preview-image-info" class="map-meta-value"></div>
+                                            <p class="map-meta-note">Prompt ou URL usado na geração visual.</p>
+                                        </div>
+                                        <div class="map-meta-card">
+                                            <span class="map-meta-label">Configuração</span>
+                                            <div id="map-preview-config" class="map-meta-value"></div>
+                                            <p class="map-meta-note">Idioma, estilo e tom aplicados.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
