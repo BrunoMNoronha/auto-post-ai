@@ -6,6 +6,8 @@ namespace AutoPostAI;
 
 class Scheduler
 {
+    private const HOOK_NAME = 'map_ent_evento_automacao';
+
     public function __construct(
         private ContentGenerator $contentGenerator,
         private ImageGenerator $imageGenerator,
@@ -17,7 +19,8 @@ class Scheduler
     public function executarAutomacao(): void
     {
         $status = $this->optionsRepository->getOption('map_status');
-        if ($status !== 'ativo') {
+        $autoGeracao = $this->optionsRepository->getOption('map_auto_geracao', 'nao');
+        if ($status !== 'ativo' || $autoGeracao !== 'sim') {
             return;
         }
 
@@ -35,25 +38,54 @@ class Scheduler
             $imgUrl = $this->imageGenerator->gerarImagem((string) $conteudo['image_prompt']);
         }
 
-        $this->postPublisher->gravarPost($conteudo, $imgUrl, false);
+        $publicarAutomatico = $this->optionsRepository->getOption('map_auto_publicar', 'nao') === 'sim';
+
+        $this->postPublisher->gravarPost($conteudo, $imgUrl, $publicarAutomatico);
     }
 
     public function ativar(): void
     {
-        if (!wp_next_scheduled('map_ent_evento_diario')) {
-            wp_schedule_event(time(), 'daily', 'map_ent_evento_diario');
+        wp_clear_scheduled_hook('map_ent_evento_diario');
+        wp_clear_scheduled_hook(self::HOOK_NAME);
+
+        $recorrencia = $this->mapearRecorrencia($this->optionsRepository->getOption('map_frequencia_cron', 'diario'));
+
+        if ($recorrencia === null) {
+            return;
         }
+
+        wp_schedule_event(time(), $recorrencia, self::HOOK_NAME);
     }
 
     public function desativar(): void
     {
         wp_clear_scheduled_hook('map_ent_evento_diario');
+        wp_clear_scheduled_hook(self::HOOK_NAME);
     }
 
     public function excluirDados(): void
     {
-        $allOptions = ['map_api_key','map_status','map_usar_imagens','map_tema','map_idioma','map_estilo','map_qtd_paragrafos','map_palavras_por_paragrafo','map_idioma2','map_estilo2','map_tom','map_max_tokens','map_gerar_imagem_auto','map_system_prompt'];
+        $allOptions = ['map_api_key','map_status','map_usar_imagens','map_tema','map_idioma','map_estilo','map_qtd_paragrafos','map_palavras_por_paragrafo','map_idioma2','map_estilo2','map_tom','map_max_tokens','map_gerar_imagem_auto','map_system_prompt','map_auto_geracao','map_auto_publicar','map_frequencia_cron'];
         $this->optionsRepository->deleteOptions($allOptions);
         wp_clear_scheduled_hook('map_ent_evento_diario');
+        wp_clear_scheduled_hook(self::HOOK_NAME);
+    }
+
+    private function mapearRecorrencia(string $frequencia): ?string
+    {
+        $map = [
+            'diario' => 'daily',
+            'duas_vezes_dia' => 'twicedaily',
+            'horario' => 'hourly',
+        ];
+
+        $recorrencia = $map[$frequencia] ?? $map['diario'];
+
+        $schedules = wp_get_schedules();
+        if (!isset($schedules[$recorrencia])) {
+            return null;
+        }
+
+        return $recorrencia;
     }
 }
