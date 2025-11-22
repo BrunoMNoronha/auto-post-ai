@@ -18,7 +18,7 @@ class Scheduler
 
     public function executarAutomacao(): void
     {
-        $status = $this->optionsRepository->getOption('map_status');
+        $status = $this->optionsRepository->getOption('map_status', 'ativo');
         $autoGeracao = $this->optionsRepository->getOption('map_auto_geracao', 'nao');
         if ($status !== 'ativo' || $autoGeracao !== 'sim') {
             return;

@@ -263,7 +263,7 @@ class AdminPage
             </div>
 
             <form action="options.php" method="post">
-                <?php settings_fields($this->optionsRepository->getOptionGroup()); ?>
+                <?php settings_fields($this->optionsRepository->getAutomationOptionGroup()); ?>
                 <div class="map-grid" style="grid-template-columns: 2fr 1fr;">
                     <div class="map-main">
                         <div class="map-card">
@@ -364,7 +364,7 @@ class AdminPage
             </div>
 
             <form action="options.php" method="post">
-                <?php settings_fields($this->optionsRepository->getOptionGroup()); ?>
+                <?php settings_fields($this->optionsRepository->getMainOptionGroup()); ?>
 
                 <div class="map-grid">
                     <div class="map-main">
