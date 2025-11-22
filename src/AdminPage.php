@@ -23,6 +23,24 @@ class AdminPage
         return $screen !== null && in_array($screen->id, $screenIds, true);
     }
 
+    /**
+     * @param callable(): void $contentRenderer
+     */
+    private function renderAccordionSection(string $id, string $title, string $description, callable $contentRenderer): void
+    {
+        ?>
+        <details id="<?php echo esc_attr($id); ?>" class="map-accordion" open>
+            <summary class="map-accordion__summary">
+                <span class="map-accordion__title"><?php echo esc_html($title); ?></span>
+                <span class="map-accordion__desc"><?php echo esc_html($description); ?></span>
+            </summary>
+            <div class="map-accordion__content">
+                <?php $contentRenderer(); ?>
+            </div>
+        </details>
+        <?php
+    }
+
     public function adicionarMenuPrincipal(): void
     {
         add_menu_page(
@@ -67,10 +85,11 @@ class AdminPage
             .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
             .map-title { font-size: 28px; font-weight: 700; color: #111; display: flex; align-items: center; gap: 10px; }
             .map-badge { background: #e0e7ff; color: #4338ca; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-            .map-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+            .map-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; align-items: start; }
             @media(max-width: 768px) { .map-grid { grid-template-columns: 1fr; } }
             .map-card { background: var(--map-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; margin-bottom: 20px; }
             .map-card h2 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; color: var(--map-text); }
+            .map-card.map-card-highlight { border: 1px solid #c7d2fe; box-shadow: 0 8px 30px -18px rgba(99,102,241,0.7); }
             .map-form-group { margin-bottom: 20px; }
             .map-label { display: block; font-weight: 600; margin-bottom: 8px; color: #374151; }
             .map-input, .map-select, .map-textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #333; transition: border-color 0.2s; }
@@ -85,6 +104,15 @@ class AdminPage
             input:checked + .slider:before { transform: translateX(24px); }
             .map-submit { margin-top: 20px; text-align: right; }
             .button-primary { background: var(--map-primary) !important; border-color: var(--map-primary) !important; padding: 8px 20px !important; font-size: 15px !important; }
+            .map-accordion { border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; box-shadow: 0 6px 16px -12px rgba(0,0,0,0.35); margin-bottom: 16px; padding: 0 16px; }
+            .map-accordion__summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; list-style: none; padding: 14px 0; font-weight: 700; color: #111827; }
+            .map-accordion__summary::-webkit-details-marker { display: none; }
+            .map-accordion__title { font-size: 16px; }
+            .map-accordion__desc { font-size: 13px; color: #6b7280; font-weight: 600; }
+            .map-accordion__content { border-top: 1px solid #e5e7eb; padding: 14px 0 8px; }
+            .map-accordion-stack { display: flex; flex-direction: column; }
+            .map-inline-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+            .map-compact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
             .api-status { margin-left: 10px; font-weight: 600; font-size: 13px; }
             .status-ok { color: #10b981; }
             .status-error { color: #ef4444; }
@@ -370,6 +398,14 @@ class AdminPage
         $tomSel = $this->optionsRepository->getOption('map_tom', 'Neutro');
         $maxTokens = $this->optionsRepository->getOption('map_max_tokens', 1500);
         $systemPrompt = $this->optionsRepository->getOption('map_system_prompt', $this->optionsRepository->getDefaultSystemPrompt());
+        $modeloIa = $this->optionsRepository->getOption('map_modelo_ia', 'gpt-4o-mini');
+        $temperatura = (float) $this->optionsRepository->getOption('map_temperatura', 0.7);
+        $imageModel = $this->optionsRepository->getOption('map_image_model', 'dall-e-3');
+        $imageStyle = $this->optionsRepository->getOption('map_image_style', 'natural');
+        $imageResolution = $this->optionsRepository->getOption('map_image_resolution', '1024x1024');
+        $imageQuality = $this->optionsRepository->getOption('map_image_quality', 'standard');
+        $seoMetadados = $this->optionsRepository->getOption('map_seo_metadados', '');
+        $seoTagsExtra = $this->optionsRepository->getOption('map_seo_tags_extra', '');
         ?>
         <div class="wrap map-wrap">
             <div class="map-header">
@@ -384,116 +420,22 @@ class AdminPage
 
                 <div class="map-grid">
                     <div class="map-main">
-                        <div class="map-card">
-                            <h2>📝 Personalização do Conteúdo</h2>
+                        <div class="map-card map-card-highlight">
+                            <h2>🎯 Tema e Pré-visualização</h2>
                             <div class="map-form-group">
                                 <label class="map-label">Tema Principal</label>
                                 <input type="text" name="map_tema" value="<?php echo esc_attr(get_option('map_tema')); ?>" class="map-input" placeholder="Ex: Notícias de Tecnologia, Receitas de Bolo..." />
+                                <p class="map-helper">Defina o assunto central usado em todas as gerações.</p>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div class="map-form-group">
-                                    <label class="map-label">Idioma</label>
-                                    <select name="map_idioma2" class="map-select">
-                                        <?php $idiomas = ['pt-BR'=>'Português (BR)','pt-PT'=>'Português (PT)','en-US'=>'Inglês (US)','es-ES'=>'Espanhol','fr-FR'=>'Francês','de-DE'=>'Alemão'];
-                                        foreach ($idiomas as $key => $label) {
-                                            printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($idiomaSel, $key, false), esc_html($label));
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="map-form-group">
-                                    <label class="map-label">Estilo de Escrita</label>
-                                    <select name="map_estilo2" class="map-select">
-                                        <?php $estilos = ['Informativo'=>'Informativo','Conversacional'=>'Conversacional','Técnico'=>'Técnico','Persuasivo'=>'Persuasivo','Criativo'=>'Criativo'];
-                                        foreach ($estilos as $key => $label) {
-                                            printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($estiloSel, $key, false), esc_html($label));
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                            </div>
-                            <div style="display:grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top:15px;">
-                                <div class="map-form-group">
-                                    <label class="map-label">Qtd. Parágrafos</label>
-                                    <input type="number" name="map_qtd_paragrafos" min="1" max="10" value="<?php echo esc_attr($qtdParagrafos); ?>" class="map-input" />
-                                </div>
-                                <div class="map-form-group">
-                                    <label class="map-label">Palavras/Parágrafo</label>
-                                    <input type="number" name="map_palavras_por_paragrafo" min="50" max="400" value="<?php echo esc_attr($palavrasPorParagrafo); ?>" class="map-input" />
-                                </div>
-                                <div class="map-form-group">
-                                    <label class="map-label">Máx. Tokens</label>
-                                    <input type="number" name="map_max_tokens" min="50" max="8000" value="<?php echo esc_attr($maxTokens); ?>" class="map-input" />
-                                </div>
-                            </div>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-top:15px;">
-                                <div class="map-form-group">
-                                    <label class="map-label">Tom</label>
-                                    <select name="map_tom" class="map-select">
-                                        <?php $toms = ['Neutro'=>'Neutro','Formal'=>'Formal','Informal'=>'Informal','Amigável'=>'Amigável','Urgente'=>'Urgente'];
-                                        foreach ($toms as $k => $l) {
-                                            printf('<option value="%s" %s>%s</option>', esc_attr($k), selected($tomSel, $k, false), esc_html($l));
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                                <div class="map-form-group">
-                                    <label class="map-label">Pré-visualização</label>
-                                    <button type="button" id="map-generate-preview" class="button">Gerar e Pré-visualizar</button>
-                                </div>
+                            <div class="map-inline-actions">
+                                <p class="map-helper" style="margin:0;">Ajuste as configurações no painel ao lado antes de gerar a prévia.</p>
+                                <button type="button" id="map-generate-preview" class="button">Gerar e Pré-visualizar</button>
                             </div>
                         </div>
 
                         <div class="map-card">
-                            <h2>🧠 Configuração Avançada da IA</h2>
-                            <div class="map-form-group">
-                                <label class="map-label">System Prompt (Instruções do Robô)</label>
-                                <textarea name="map_system_prompt" rows="8" class="map-textarea"><?php echo esc_textarea($systemPrompt); ?></textarea>
-                                <p class="map-helper" style="color:#d97706;">⚠️ Cuidado: Mantenha as instruções sobre o formato JSON. Se remover as regras de JSON, o plugin deixará de funcionar.</p>
-                            </div>
-                        </div>
-
-                        <div class="map-card">
-                            <h2>🔑 Conexão OpenAI</h2>
-                            <div class="map-form-group">
-                                <label class="map-label">API Key (Secreta)</label>
-                                <div style="display:flex; gap:10px; align-items:center;">
-                                    <input type="password" name="map_api_key" id="map_api_key_input" placeholder="<?php echo !empty($chaveSalva) ? 'Chave guardada. Escreva para alterar.' : 'sk-...'; ?>" class="map-input" />
-                                    <button type="button" id="map-test-api" class="button">Testar</button>
-                                </div>
-                                <p class="map-helper">A chave é encriptada (AES-256). <span id="map-api-test-msg" class="api-status"></span></p>
-                            </div>
-                        </div>
-
-                        <div class="map-submit">
-                            <?php submit_button('Guardar Alterações', 'primary', 'submit', false); ?>
-                        </div>
-                    </div>
-
-                    <div class="map-sidebar">
-                        <div class="map-card">
-                            <h2>⚙️ Painel</h2>
-                            <div class="map-form-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                <label class="map-label" style="margin:0;">Status do Robô</label>
-                                <input type="hidden" name="map_status" value="inativo" />
-                                <label class="switch">
-                                    <input type="checkbox" name="map_status" value="ativo" <?php checked($status, 'ativo'); ?> />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
-
-                            <div class="map-form-group">
-                                <label class="map-label" style="display:block; margin-bottom:10px;">Gerar Imagens?</label>
-                                <input type="hidden" name="map_gerar_imagem_auto" value="nao" />
-                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                    <input type="checkbox" name="map_gerar_imagem_auto" value="sim" <?php checked($usarImagens, 'sim'); ?> />
-                                    <span>Sim, via DALL-E 3.</span>
-                                </label>
-                            </div>
-
-                            <div id="map-preview-container" class="map-card map-preview-card" style="display:none; margin-top:20px;">
+                            <h2>Pré-visualização</h2>
+                            <div id="map-preview-container" class="map-preview-card" style="display:none; margin-top:10px;">
                                 <div class="map-preview-header">
                                     <div>
                                         <p class="map-eyebrow">Painel de Publicação Profissional</p>
@@ -556,6 +498,195 @@ class AdminPage
                                     </div>
                                 </div>
                             </div>
+                            <p class="map-helper" style="margin-top:10px;">A pré-visualização aparece aqui assim que você gerar o conteúdo.</p>
+                        </div>
+                    </div>
+
+                    <div class="map-sidebar">
+                        <div class="map-accordion-stack">
+                            <?php
+                            $this->renderAccordionSection('map-accordion-modelo', '🤖 Opções do Modelo', 'Modelo, temperatura e prompt base', function () use ($modeloIa, $temperatura, $maxTokens, $systemPrompt): void {
+                                ?>
+                                <div class="map-compact-grid">
+                                    <div class="map-form-group">
+                                        <label class="map-label">Modelo AI</label>
+                                        <select name="map_modelo_ia" class="map-select">
+                                            <?php
+                                            $modelos = [
+                                                'gpt-4o-mini' => 'GPT-4o Mini (rápido)',
+                                                'gpt-4o' => 'GPT-4o (qualidade)',
+                                                'gpt-4o-mini-128k' => 'GPT-4o Mini 128k',
+                                            ];
+                                            foreach ($modelos as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($modeloIa, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Temperatura</label>
+                                        <input type="number" name="map_temperatura" min="0" max="2" step="0.1" value="<?php echo esc_attr($temperatura); ?>" class="map-input" />
+                                        <p class="map-helper">Mais alto = mais criativo.</p>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Máx. Tokens</label>
+                                        <input type="number" name="map_max_tokens" min="50" max="8000" value="<?php echo esc_attr($maxTokens); ?>" class="map-input" />
+                                    </div>
+                                </div>
+                                <div class="map-form-group">
+                                    <label class="map-label">System Prompt (Instruções do Robô)</label>
+                                    <textarea name="map_system_prompt" rows="8" class="map-textarea"><?php echo esc_textarea($systemPrompt); ?></textarea>
+                                    <p class="map-helper" style="color:#d97706;">⚠️ Mantenha as instruções sobre JSON para garantir compatibilidade.</p>
+                                </div>
+                                <?php
+                            });
+
+                            $this->renderAccordionSection('map-accordion-conteudo', '📝 Opções do Conteúdo', 'Idioma, estilo e estrutura', function () use ($idiomaSel, $estiloSel, $qtdParagrafos, $palavrasPorParagrafo, $tomSel): void {
+                                ?>
+                                <div class="map-compact-grid">
+                                    <div class="map-form-group">
+                                        <label class="map-label">Idioma</label>
+                                        <select name="map_idioma2" class="map-select">
+                                            <?php
+                                            $idiomas = ['pt-BR' => 'Português (BR)', 'pt-PT' => 'Português (PT)', 'en-US' => 'Inglês (US)', 'es-ES' => 'Espanhol', 'fr-FR' => 'Francês', 'de-DE' => 'Alemão'];
+                                            foreach ($idiomas as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($idiomaSel, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Estilo de Escrita</label>
+                                        <select name="map_estilo2" class="map-select">
+                                            <?php
+                                            $estilos = ['Informativo' => 'Informativo', 'Conversacional' => 'Conversacional', 'Técnico' => 'Técnico', 'Persuasivo' => 'Persuasivo', 'Criativo' => 'Criativo'];
+                                            foreach ($estilos as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($estiloSel, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Tom</label>
+                                        <select name="map_tom" class="map-select">
+                                            <?php
+                                            $toms = ['Neutro' => 'Neutro', 'Formal' => 'Formal', 'Informal' => 'Informal', 'Amigável' => 'Amigável', 'Urgente' => 'Urgente'];
+                                            foreach ($toms as $k => $l) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($k), selected($tomSel, $k, false), esc_html($l));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Qtd. Parágrafos</label>
+                                        <input type="number" name="map_qtd_paragrafos" min="1" max="10" value="<?php echo esc_attr($qtdParagrafos); ?>" class="map-input" />
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Palavras/Parágrafo</label>
+                                        <input type="number" name="map_palavras_por_paragrafo" min="50" max="400" value="<?php echo esc_attr($palavrasPorParagrafo); ?>" class="map-input" />
+                                    </div>
+                                </div>
+                                <?php
+                            });
+
+                            $this->renderAccordionSection('map-accordion-imagem', '🎨 Geração de Imagem', 'Controle fino para visuais', function () use ($usarImagens, $imageModel, $imageResolution, $imageStyle, $imageQuality): void {
+                                ?>
+                                <div class="map-form-group">
+                                    <label class="map-label" style="display:block; margin-bottom:10px;">Gerar Imagens?</label>
+                                    <input type="hidden" name="map_gerar_imagem_auto" value="nao" />
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" name="map_gerar_imagem_auto" value="sim" <?php checked($usarImagens, 'sim'); ?> />
+                                        <span>Sim, gerar visual automaticamente.</span>
+                                    </label>
+                                </div>
+                                <div class="map-compact-grid">
+                                    <div class="map-form-group">
+                                        <label class="map-label">Modelo</label>
+                                        <select name="map_image_model" class="map-select">
+                                            <?php
+                                            $imageModels = ['dall-e-3' => 'DALL·E 3', 'gpt-image-1' => 'GPT Image'];
+                                            foreach ($imageModels as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($imageModel, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Estilo</label>
+                                        <select name="map_image_style" class="map-select">
+                                            <?php
+                                            $imageStyles = ['natural' => 'Natural', 'vivid' => 'Vívido'];
+                                            foreach ($imageStyles as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($imageStyle, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Resolução</label>
+                                        <select name="map_image_resolution" class="map-select">
+                                            <?php
+                                            $resolucoes = ['1024x1024' => 'Quadrado 1024x1024', '1792x1024' => 'Paisagem 1792x1024', '1024x1792' => 'Retrato 1024x1792'];
+                                            foreach ($resolucoes as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($imageResolution, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="map-form-group">
+                                        <label class="map-label">Tamanho</label>
+                                        <select name="map_image_quality" class="map-select">
+                                            <?php
+                                            $quality = ['standard' => 'Padrão (mais rápido)', 'hd' => 'Alta definição'];
+                                            foreach ($quality as $key => $label) {
+                                                printf('<option value="%s" %s>%s</option>', esc_attr($key), selected($imageQuality, $key, false), esc_html($label));
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                </div>
+                                <?php
+                            });
+
+                            $this->renderAccordionSection('map-accordion-seo', '🔍 Detalhes de SEO', 'Metadados e tags sugeridas', function () use ($seoMetadados, $seoTagsExtra): void {
+                                ?>
+                                <div class="map-form-group">
+                                    <label class="map-label">Metadados adicionais</label>
+                                    <textarea name="map_seo_metadados" rows="4" class="map-textarea" placeholder="Ex: Incluir CTA curto no final, priorizar keywords locais."><?php echo esc_textarea($seoMetadados); ?></textarea>
+                                    <p class="map-helper">Complementos enviados ao prompt para orientar meta title e description.</p>
+                                </div>
+                                <div class="map-form-group">
+                                    <label class="map-label">Tags fixas</label>
+                                    <input type="text" name="map_seo_tags_extra" class="map-input" value="<?php echo esc_attr($seoTagsExtra); ?>" placeholder="marketing, seo, automação" />
+                                    <p class="map-helper">Separadas por vírgula. São sugeridas junto às tags geradas pela IA.</p>
+                                </div>
+                                <?php
+                            });
+
+                            $this->renderAccordionSection('map-accordion-config', '⚙️ Configurações', 'Status, publicação e credenciais', function () use ($status, $chaveSalva): void {
+                                ?>
+                                <div class="map-form-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <label class="map-label" style="margin:0;">Status do Robô</label>
+                                    <input type="hidden" name="map_status" value="inativo" />
+                                    <label class="switch">
+                                        <input type="checkbox" name="map_status" value="ativo" <?php checked($status, 'ativo'); ?> />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="map-form-group">
+                                    <label class="map-label">API Key (Configurações)</label>
+                                    <div style="display:flex; gap:10px; align-items:center;">
+                                        <input type="password" name="map_api_key" id="map_api_key_input" placeholder="<?php echo !empty($chaveSalva) ? 'Chave guardada. Escreva para alterar.' : 'sk-...'; ?>" class="map-input" />
+                                        <button type="button" id="map-test-api" class="button">Testar</button>
+                                    </div>
+                                    <p class="map-helper">A chave é encriptada (AES-256). <span id="map-api-test-msg" class="api-status"></span></p>
+                                </div>
+                                <?php
+                            });
+                            ?>
+                        </div>
+                        <div class="map-submit">
+                            <?php submit_button('Guardar Alterações', 'primary', 'submit', false); ?>
                         </div>
                     </div>
                 </div>

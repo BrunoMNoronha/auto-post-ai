@@ -32,20 +32,28 @@ class ContentGenerator
         $qtd = (int) ($overrides['qtd_paragrafos'] ?? $this->optionsRepository->getOption('map_qtd_paragrafos', 3));
         $palavras = (int) ($overrides['palavras_por_paragrafo'] ?? $this->optionsRepository->getOption('map_palavras_por_paragrafo', 120));
         $maxTokens = (int) ($overrides['max_tokens'] ?? $this->optionsRepository->getOption('map_max_tokens', 1500));
+        $modelo = (string) ($overrides['modelo_ia'] ?? $this->optionsRepository->getOption('map_modelo_ia', 'gpt-4o-mini'));
+        $temperatura = (float) ($overrides['temperatura'] ?? $this->optionsRepository->getOption('map_temperatura', 0.7));
+        $temperatura = $this->normalizarTemperatura($temperatura);
 
         $systemPrompt = (string) $this->optionsRepository->getOption('map_system_prompt', '');
         if (trim($systemPrompt) === '') {
             $systemPrompt = $this->optionsRepository->getDefaultSystemPrompt();
         }
 
+        $seoMetadados = (string) $this->optionsRepository->getOption('map_seo_metadados', '');
+        $seoTagsExtra = (string) $this->optionsRepository->getOption('map_seo_tags_extra', '');
+
         $userPrompt = <<<EOD
 Escreva um artigo completo sobre o tema: "{$tema}".
 Contexto: Idioma {$idioma}, estilo {$estilo}, tom {$tom}.
 Estrutura: {$qtd} seções de aprox. {$palavras} palavras cada.
+Metadados adicionais: {$seoMetadados}.
+Tags obrigatórias: {$seoTagsExtra}.
 Gere o JSON conforme solicitado nas instruções do sistema.
 EOD;
 
-        $response = $this->chamarGpt($apiKey, $systemPrompt, $userPrompt, $maxTokens);
+        $response = $this->chamarGpt($apiKey, $systemPrompt, $userPrompt, $maxTokens, $modelo, $temperatura);
         if (is_wp_error($response)) {
             return $response;
         }
@@ -73,16 +81,16 @@ EOD;
     /**
      * @return array|\WP_Error
      */
-    private function chamarGpt(string $key, string $systemPrompt, string $userPrompt, int $maxTokens = 800): array|\WP_Error
+    private function chamarGpt(string $key, string $systemPrompt, string $userPrompt, int $maxTokens = 800, string $modelo = 'gpt-4o-mini', float $temperatura = 0.7): array|\WP_Error
     {
         $body = [
-            'model' => 'gpt-4o-mini',
+            'model' => $modelo,
             'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
             ],
             'max_tokens' => $maxTokens,
-            'temperature' => 0.7,
+            'temperature' => $temperatura,
         ];
 
         $timeout = $maxTokens > 2000 ? 120 : 60;
@@ -128,5 +136,10 @@ EOD;
         }
 
         return $json;
+    }
+
+    private function normalizarTemperatura(float $valor): float
+    {
+        return min(2.0, max(0.0, $valor));
     }
 }
