@@ -107,7 +107,27 @@ EOD;
             return new \WP_Error('http_error', 'Erro HTTP: ' . $response->get_error_message());
         }
 
+        $statusCode = (int) wp_remote_retrieve_response_code($response);
         $raw = wp_remote_retrieve_body($response);
+        if ($statusCode < 200 || $statusCode >= 300) {
+            $decodedError = json_decode($raw, true);
+            $apiMessage = '';
+
+            if (is_array($decodedError) && isset($decodedError['error']['message'])) {
+                $apiMessage = (string) $decodedError['error']['message'];
+            }
+
+            $trechoSeguro = $this->extrairTrechoSeguro($raw);
+            $mensagem = sprintf(
+                'HTTP %d: %s%s',
+                $statusCode,
+                $apiMessage !== '' ? $apiMessage : 'Resposta inesperada.',
+                $trechoSeguro !== '' ? ' Trecho: ' . $trechoSeguro : ''
+            );
+
+            return new \WP_Error((string) $statusCode, $mensagem);
+        }
+
         $decoded = json_decode($raw, true);
 
         if (isset($decoded['error'])) {
@@ -131,6 +151,14 @@ EOD;
         }
 
         return $json;
+    }
+
+    private function extrairTrechoSeguro(string $body): string
+    {
+        $limpo = trim(wp_strip_all_tags($body));
+        $limpo = preg_replace('/\s+/', ' ', $limpo) ?? $limpo;
+
+        return mb_substr($limpo, 0, 300);
     }
 
     private function normalizarTemperatura(float $valor): float
