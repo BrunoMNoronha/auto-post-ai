@@ -6,11 +6,22 @@ namespace AutoPostAI;
 
 class OptionsRepository
 {
-    private string $optionGroup = 'map_ent_opcoes';
+    private string $mainOptionGroup = 'map_ent_opcoes';
+    private string $automationOptionGroup = 'map_ent_opcoes_automacao';
 
     public function getOptionGroup(): string
     {
-        return $this->optionGroup;
+        return $this->mainOptionGroup;
+    }
+
+    public function getMainOptionGroup(): string
+    {
+        return $this->mainOptionGroup;
+    }
+
+    public function getAutomationOptionGroup(): string
+    {
+        return $this->automationOptionGroup;
     }
 
     public function getDefaultSystemPrompt(): string
