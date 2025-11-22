@@ -1,65 +1,103 @@
-# Auto Post AI
+# 🚀 Auto Post AI
 
-Automação para geração de posts com IA no WordPress — gera conteúdo, metadados de SEO e imagens destacadas automaticamente, com preview antes de publicar.
+Automação inteligente para criação de posts no WordPress — gera título, conteúdo, metadados de SEO e imagens destacadas com IA, oferecendo preview antes da publicação.
 
-== Descrição ==
-Auto Post AI permite gerar conteúdo para posts usando modelos de linguagem (OpenAI) e geração de imagens, com armazenamento de uso e parâmetros configuráveis (quantidade de parágrafos, palavras por parágrafo, idioma, estilo, tom e limite de tokens). Inclui preview via AJAX antes de publicar e persiste título, conteúdo, SEO, tags e imagem destacada.
+[![Versão](https://img.shields.io/badge/version-1.4-blue)](#) [![License: GPLv2](https://img.shields.io/badge/license-GPLv2-brightgreen)](#) [![PHP](https://img.shields.io/badge/PHP-%3E%3D7.4-8892BF)](#)
 
-== Requerimentos ==
-* WordPress 5.8+
-* PHP 7.4+
-* Extensões PHP: curl, openssl
-* Chave da API OpenAI (pode ser definida via opção no admin ou pela constante MAP_OPENAI_API_KEY no wp-config.php)
+---
 
-== Instalação ==
-1. Faça upload do diretório `auto-post-ai` para a pasta `wp-content/plugins/`.
-2. Ative o plugin através do menu "Plugins" no WordPress.
-3. Acesse o menu do plugin (Auto Post AI) no painel de administração e configure sua chave da API e preferências.
+Sumário
+- Visão Geral
+- Funcionalidades implementadas
+- Como usar
+- Requisitos e instalação
+- Roadmap — o que vem por aí
+- Changelog
+- FAQs
+- Contribuição & Suporte
 
-Dica: em ambientes de produção recomenda-se definir a chave da OpenAI em `wp-config.php` como:
+---
+
+Visão Geral
+
+Auto Post AI automatiza a criação de conteúdo para WordPress utilizando modelos de linguagem (OpenAI) e geração de imagens. Ideal para quem precisa produzir rascunhos, ideias e posts otimizados para SEO com rapidez, mantendo controle total antes da publicação.
+
+Funcionalidades implementadas
+
+- Geração de título e conteúdo em HTML sanitizado usando modelos OpenAI.
+- Configurações granulares: idioma, estilo, tom, número de parágrafos, palavras por parágrafo e limite de tokens.
+- Preview via AJAX: visualize título, corpo, SEO e sugestão de imagem antes de publicar.
+- Persistência automática de: título, conteúdo, metadados de SEO e tags.
+- Geração e anexação de imagem destacada (configurável; desativada no preview por padrão para controlar custos).
+- Logs de uso e tabela de histórico criados na ativação do plugin.
+- Integração com cron do WordPress para publicações agendadas.
+
+Arquitetura (rápido)
+- src/Admin.php — UI e opções do plugin
+- src/ContentGenerator.php — chamada à API de linguagem e formatação
+- src/ImageGenerator.php — criação de imagens via API
+- src/Publisher.php — persistência, anexos e SEO
+- src/Scheduler.php — tarefas agendadas e logs
+
+Como usar
+
+1. Instale e ative o plugin.
+2. Acesse o menu "Auto Post AI" no admin do WordPress.
+3. Configure sua chave da API (recomendado via MAP_OPENAI_API_KEY no wp-config.php) e preferências.
+4. Clique em "Gerar e Pré-visualizar" para avaliar resultado.
+5. A partir do preview, escolha "Salvar como Rascunho" ou "Publicar".
+
+Dica: para evitar custos inesperados, a geração de imagem no preview está desativada por padrão.
+
+Requisitos e instalação
+
+- WordPress 5.8+
+- PHP 7.4+
+- Extensões: curl, openssl
+
+Instalação
+1. Faça upload do diretório `auto-post-ai` para `wp-content/plugins/`.
+2. Ative o plugin através do menu "Plugins".
+3. Configure as opções no painel do plugin.
+
+Recomendação de produção
+- Defina a chave da OpenAI em `wp-config.php`:
 
 define('MAP_OPENAI_API_KEY', 'sua_chave_aqui');
 
-== Uso ==
-1. Configure as opções do plugin (tema padrão, idioma, estilo, tom, número de parágrafos, palavras por parágrafo, max tokens, gerar imagem automático).
-2. Use o botão "Gerar e Pré-visualizar" na página do plugin para ver o título, conteúdo HTML sanitizado, SEO e sugestão de imagem sem publicar.
-3. A partir do preview você pode "Salvar como Rascunho" ou "Publicar". Ao publicar, a imagem (se configurada) será gerada e anexada como imagem destacada, e metadados SEO e tags serão persistidos.
-4. As execuções automáticas por cron criarão posts conforme agendamento configurado.
+Roadmap — o que vem por aí
 
-== Capturas de Tela ==
-1. Tela de configurações com opções de idioma, estilo, tom e tokens.
-2. Botão "Gerar e Pré-visualizar" com resultado mostrado em uma pré-visualização.
-3. Exemplo de post criado com SEO e imagem destacada.
+- Multi-idioma avançado com templates por idioma
+- Treinamento fino (prompt tuning) com base em posts existentes
+- Integração com serviços de SEO (serp/analytics) para sugestão de palavras-chave
+- Editor visual integrado para ajustes finais no conteúdo
+- Filtragem e controle de custos com cotas por usuário/cron
+- Webhooks para integrações externas (ex.: CMS headless, Zapier)
 
-== Changelog ==
-= 1.4 =
-* Adicionadas opções para parágrafos, palavras por parágrafo, idioma, estilo, tom e max tokens.
-* Implementado preview via AJAX antes de publicar.
-* Persistência de SEO, tags e imagem destacada.
-* Tabela de logs de uso criada na ativação.
+Changelog (resumido)
 
-= 1.3 =
-* Melhorias na encriptação da chave API e validação.
+- 1.4 — Opções avançadas (parágrafos, palavras/para, idioma, estilo, tom, max tokens); preview via AJAX; persistência de SEO/tags/imagem; tabela de logs.
+- 1.3 — Melhoria na encriptação da chave API e validação.
 
-== Perguntas Frequentes ==
-= O plugin vai gerar imagens automaticamente no preview? =
-Por padrão, para evitar custos, a geração de imagem no preview é desativada. Você pode ativar nas opções, mas tenha em mente que cada geração consome a API de imagens.
+Perguntas Frequentes (FAQ)
 
-= Como proteger a minha chave da OpenAI? =
-Recomendamos definir a constante `MAP_OPENAI_API_KEY` no `wp-config.php` em vez de salvar a chave nas opções do banco de dados.
+Q: A geração de imagens é cobrada?
+A: Sim — cada imagem consome a API. No preview está desativada por padrão para reduzir custos.
 
-= Posso reusar o conteúdo gerado em outros sites? =
-Sim — o conteúdo gerado é salvo como post no WordPress e pode ser exportado conforme suas necessidades. Revise a política de uso da OpenAI para usos comerciais.
+Q: Como proteger a chave da OpenAI?
+A: Recomendamos definir a constante `MAP_OPENAI_API_KEY` no `wp-config.php` em vez de armazenar no banco.
 
-== Upgrade Notice ==
-= 1.4 =
-Atualização adiciona novas opções e a função de preview. Verifique suas configurações após a atualização e revise limites de tokens para evitar custos inesperados.
+Q: Posso automatizar publicações?
+A: Sim — use a agenda (cron) integrada para publicações automáticas.
 
-== Desenvolvedores ==
-O código é modularizado em `src/` com classes para administração, geração de conteúdo, geração de imagens, publicação e persistência de opções. Consulte os arquivos em `src/` para entender a arquitetura e estender funcionalidades.
+Contribuição & Suporte
 
-== Licença ==
-Este plugin é software livre, licenciado sob a GNU General Public License v2 (ou posterior).
+Contribuições são bem-vindas! Abra issues ou pull requests no repositório. Para suporte comercial ou integração, contate o autor no repositório ou envie email conforme informações internas.
 
-== Suporte ==
-Abra issues no repositório ou envie email para o autor. Para questões de integração e testes, verifique o README interno e o log de uso no painel do plugin.
+Licença
+
+Este projeto é licenciado sob GNU GPL v2 (ou posterior).
+
+---
+
+Gostou? Surpreenda-se testando a geração com diferentes estilos e limites de tokens — às vezes 3 parágrafos geram ideias melhores que 8 😉
