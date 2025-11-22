@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 /**
  * Plugin Name: Auto Post AI
  * Description: Automação de conteúdo com IA, criptografia segura, validação de API e Prompt personalizável.
@@ -11,10 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Auto_Post_AI {
 
-    private $option_group = 'map_ent_opcoes';
-    
+    private string $option_group = 'map_ent_opcoes';
+
     // Prompt padrão (Fallback seguro)
-    private $default_system_prompt = <<<EOD
+    private string $default_system_prompt = <<<EOD
 Atue como um Especialista Sênior em SEO e Marketing de Conteúdo.
 Sua tarefa é escrever artigos de blog altamente engajadores e otimizados.
 
@@ -46,32 +47,42 @@ EOD;
 
     // --- 1. CRIPTOGRAFIA ---
 
-    private function encriptar( $valor ) {
-        if ( empty( $valor ) ) return '';
+    private function encriptar( string $valor ): string {
+        if ( $valor === '' ) return '';
         $metodo = 'aes-256-cbc';
         $chave = wp_salt('auth');
         $iv = substr( wp_salt('secure_auth'), 0, 16 );
-        return base64_encode( openssl_encrypt( $valor, $metodo, $chave, 0, $iv ) );
+        $criptografado = openssl_encrypt( $valor, $metodo, $chave, 0, $iv );
+        if ( $criptografado === false ) {
+            return '';
+        }
+
+        return base64_encode( $criptografado );
     }
 
-    private function desencriptar( $valor ) {
-        if ( empty( $valor ) ) return '';
+    private function desencriptar( string $valor ): string {
+        if ( $valor === '' ) return '';
         $metodo = 'aes-256-cbc';
         $chave = wp_salt('auth');
         $iv = substr( wp_salt('secure_auth'), 0, 16 );
-        return openssl_decrypt( base64_decode( $valor ), $metodo, $chave, 0, $iv );
+        $descriptografado = openssl_decrypt( base64_decode( $valor ), $metodo, $chave, 0, $iv );
+        if ( $descriptografado === false ) {
+            return '';
+        }
+
+        return $descriptografado;
     }
 
     // --- 2. CONFIGURAÇÕES ---
 
-    public function adicionar_menu_principal() {
+    public function adicionar_menu_principal(): void {
         add_menu_page(
             'Auto Post AI', 'Auto Post AI', 'manage_options', 'auto-post-ai',
             array( $this, 'renderizar_pagina' ), 'dashicons-superhero', 20
         );
     }
 
-    public function registar_configuracoes() {
+    public function registar_configuracoes(): void {
         register_setting( $this->option_group, 'map_api_key', array('sanitize_callback' => array( $this, 'sanitizar_api_key' )));
         // Configuração do System Prompt
         register_setting( $this->option_group, 'map_system_prompt', 'sanitize_textarea_field' );
@@ -88,22 +99,22 @@ EOD;
         register_setting( $this->option_group, 'map_gerar_imagem_auto', array('sanitize_callback' => array( $this, 'sanitizar_checkbox' )) );
     }
 
-    public function sanitizar_api_key( $input ) {
-        if ( defined('MAP_OPENAI_API_KEY') && ! empty( MAP_OPENAI_API_KEY ) ) return get_option('map_api_key');
-        if ( empty( $input ) ) return get_option('map_api_key');
+    public function sanitizar_api_key( string $input ): string {
+        if ( defined('MAP_OPENAI_API_KEY') && ! empty( MAP_OPENAI_API_KEY ) ) return (string) get_option('map_api_key', '');
+        if ( $input === '' ) return (string) get_option('map_api_key', '');
         $trim = trim( $input );
-        if ( strlen( $trim ) < 10 ) return get_option('map_api_key'); // Ignora inputs curtos (placeholders)
+        if ( strlen( $trim ) < 10 ) return (string) get_option('map_api_key', ''); // Ignora inputs curtos (placeholders)
         return $this->encriptar( $trim );
     }
 
-    public function sanitizar_qtd_paragrafos( $v ) { return max(1, min(10, absint($v))); }
-    public function sanitizar_palavras_por_paragrafo( $v ) { return max(50, min(400, absint($v))); }
-    public function sanitizar_max_tokens( $v ) { return max(50, min(8000, absint($v))); }
-    public function sanitizar_checkbox( $v ) { return ($v === 'sim' || $v === '1' || $v === 1 || $v === true) ? 'sim' : 'nao'; }
+    public function sanitizar_qtd_paragrafos( mixed $v ): int { return max(1, min(10, absint($v))); }
+    public function sanitizar_palavras_por_paragrafo( mixed $v ): int { return max(50, min(400, absint($v))); }
+    public function sanitizar_max_tokens( mixed $v ): int { return max(50, min(8000, absint($v))); }
+    public function sanitizar_checkbox( mixed $v ): string { return ($v === 'sim' || $v === '1' || $v === 1 || $v === true) ? 'sim' : 'nao'; }
 
     // --- 3. UI/UX ---
 
-    public function estilos_personalizados() {
+    public function estilos_personalizados(): void {
         if ( get_current_screen()->id !== 'toplevel_page_auto-post-ai' ) return;
         ?>
         <style>
@@ -139,7 +150,7 @@ EOD;
         <?php
     }
 
-    public function enqueue_admin_assets( $hook ) {
+    public function enqueue_admin_assets( string $hook ): void {
         if ( get_current_screen()->id !== 'toplevel_page_auto-post-ai' ) return;
         wp_enqueue_script( 'map-admin-js', plugin_dir_url( __FILE__ ) . 'assets/admin-preview.js', array( 'jquery' ), '1.2', true );
         wp_localize_script( 'map-admin-js', 'MAP_ADMIN', array(
@@ -151,7 +162,7 @@ EOD;
         ) );
     }
 
-    public function renderizar_pagina() {
+    public function renderizar_pagina(): void {
         if ( ! current_user_can( 'manage_options' ) ) return;
         
         $status = get_option('map_status', 'ativo');
@@ -309,7 +320,7 @@ EOD;
         
         // Se o usuário não digitou nada, tenta usar a chave salva no banco
         if ( empty($input_key) ) {
-            $api_key_enc = get_option( 'map_api_key' );
+            $api_key_enc = (string) get_option( 'map_api_key', '' );
             $api_key = $this->desencriptar( $api_key_enc );
         } else {
             $api_key = $input_key;
@@ -339,7 +350,7 @@ EOD;
         }
     }
 
-    public function executar_automacao() {
+    public function executar_automacao(): void {
         $status = get_option('map_status');
         if ( $status !== 'ativo' ) return;
 
@@ -354,7 +365,7 @@ EOD;
         $img_url = false;
         
         if ( $usar_imagem && ! empty( $conteudo['image_prompt'] ) ) {
-             $api_key_enc = get_option( 'map_api_key' );
+             $api_key_enc = (string) get_option( 'map_api_key', '' );
              $api_key = $this->desencriptar( $api_key_enc );
              if ( $api_key ) {
                 $img_url = $this->chamar_dalle( $api_key, $conteudo['image_prompt'] );
@@ -418,10 +429,7 @@ EOD;
         return false;
     }
 
-    private function gravar_post( $dados, $img_url ) {
-        $publish = false;
-        if ( func_num_args() >= 3 ) $publish = func_get_arg(2);
-
+    private function gravar_post( array $dados, string|false $img_url, bool $publish = false ): int|WP_Error {
         $post_args = array(
             'post_title' => sanitize_text_field( $dados['titulo'] ?? '' ),
             'post_content' => wp_kses_post( $dados['conteudo_html'] ?? '' ), // wp_kses_post permite tags seguras
@@ -453,8 +461,8 @@ EOD;
         return $post_id;
     }
 
-    private function gerar_conteudo( $overrides = array(), $for_preview = true ) {
-        $api_key_enc = get_option( 'map_api_key' );
+    private function gerar_conteudo( array $overrides = array(), bool $for_preview = true ): array|WP_Error {
+        $api_key_enc = (string) get_option( 'map_api_key', '' );
         $api_key = $this->desencriptar( $api_key_enc );
         if ( empty( $api_key ) && defined('MAP_OPENAI_API_KEY') ) $api_key = MAP_OPENAI_API_KEY;
         
@@ -470,7 +478,10 @@ EOD;
 
         // Pega o prompt salvo ou usa o default se estiver vazio
         $system_prompt = get_option('map_system_prompt');
-        if ( empty( trim($system_prompt) ) ) {
+        if ( ! is_string( $system_prompt ) ) {
+            $system_prompt = '';
+        }
+        if ( trim( $system_prompt ) === '' ) {
             $system_prompt = $this->default_system_prompt;
         }
 
@@ -503,7 +514,7 @@ EOD;
         return $out;
     }
 
-    public function ajax_gerar_preview() {
+    public function ajax_gerar_preview(): void {
         check_ajax_referer( 'map_preview_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permissão negada' );
 
@@ -524,7 +535,7 @@ EOD;
         wp_send_json_success( $data );
     }
 
-    public function ajax_publicar_from_preview() {
+    public function ajax_publicar_from_preview(): void {
         check_ajax_referer( 'map_preview_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_send_json_error( 'Permissão negada' );
 
@@ -550,7 +561,7 @@ EOD;
 
         if ( ! $data ) wp_send_json_error( 'Dados inválidos.' );
 
-        $api_key_enc = get_option( 'map_api_key' );
+        $api_key_enc = (string) get_option( 'map_api_key', '' );
         $api_key = $this->desencriptar( $api_key_enc );
         if ( empty( $api_key ) && defined('MAP_OPENAI_API_KEY') ) $api_key = MAP_OPENAI_API_KEY;
 
@@ -567,11 +578,11 @@ EOD;
     }
 
     // --- 5. CICLO DE VIDA ---
-    public static function ativar() {
+    public static function ativar(): void {
         if ( ! wp_next_scheduled( 'map_ent_evento_diario' ) ) wp_schedule_event( time(), 'daily', 'map_ent_evento_diario' );
     }
-    public static function desativar() { wp_clear_scheduled_hook( 'map_ent_evento_diario' ); }
-    public static function excluir_dados() {
+    public static function desativar(): void { wp_clear_scheduled_hook( 'map_ent_evento_diario' ); }
+    public static function excluir_dados(): void {
         // Exclui todas as opções do plugin
         $all_options = ['map_api_key','map_status','map_usar_imagens','map_tema','map_idioma','map_estilo','map_qtd_paragrafos','map_palavras_por_paragrafo','map_idioma2','map_estilo2','map_tom','map_max_tokens','map_gerar_imagem_auto','map_system_prompt'];
         foreach($all_options as $opt) delete_option($opt);
