@@ -51,24 +51,45 @@ class ImageGenerator
         }
 
         $responseCode = wp_remote_retrieve_response_code($response);
-        $body = json_decode((string) wp_remote_retrieve_body($response), true);
+        $bodyRaw = (string) wp_remote_retrieve_body($response);
+        $body = json_decode($bodyRaw, true);
+        $bodySnippet = $this->truncateBody($bodyRaw);
 
         if ($responseCode !== 200) {
+            $mensagemApi = is_array($body) && isset($body['error']['message']) ? (string) $body['error']['message'] : null;
             $mensagemErro = 'Auto Post AI - Erro na API de imagem. Código: ' . $responseCode;
-            if (is_array($body) && isset($body['error']['message'])) {
-                $mensagemErro .= ' - ' . (string) $body['error']['message'];
+            if ($mensagemApi !== null) {
+                $mensagemErro .= ' - ' . $mensagemApi;
+            }
+            if ($bodySnippet !== '') {
+                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
             }
 
             error_log($mensagemErro);
 
-            return new \WP_Error((string) $responseCode, $mensagemErro, $body['error'] ?? []);
+            return new \WP_Error((string) $responseCode, $mensagemErro, $body['error'] ?? ['body' => $bodySnippet]);
         }
 
         if (is_array($body) && isset($body['error'])) {
-            $mensagemErro = 'Auto Post AI - Erro na API de imagem: ' . (string) ($body['error']['message'] ?? 'Desconhecido');
+            $mensagemApi = (string) ($body['error']['message'] ?? 'Desconhecido');
+            $mensagemErro = 'Auto Post AI - Erro na API de imagem: ' . $mensagemApi;
+            if ($bodySnippet !== '') {
+                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
+            }
             error_log($mensagemErro);
 
             return new \WP_Error('api_error', $mensagemErro, $body['error']);
+        }
+
+        if (!is_array($body) || !isset($body['data']) || !is_array($body['data']) || $body['data'] === []) {
+            $mensagemErro = 'Auto Post AI - Resposta inválida da API de imagem. Código: ' . $responseCode;
+            if ($bodySnippet !== '') {
+                $mensagemErro .= ' - Corpo: ' . $bodySnippet;
+            }
+
+            error_log($mensagemErro);
+
+            return new \WP_Error('invalid_image_response', $mensagemErro, ['body' => $body, 'status' => $responseCode]);
         }
         if (isset($body['data'][0]['url'])) {
             return (string) $body['data'][0]['url'];
@@ -108,5 +129,12 @@ class ImageGenerator
         }
 
         return is_string($imageUrl) ? $imageUrl : false;
+    }
+
+    private function truncateBody(string $body): string
+    {
+        $bodyLimpo = trim($body);
+
+        return $bodyLimpo === '' ? '' : substr($bodyLimpo, 0, 500);
     }
 }
