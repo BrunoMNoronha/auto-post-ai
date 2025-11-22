@@ -164,6 +164,7 @@
                 action: MAP_ADMIN.action_publish,
                 nonce: MAP_ADMIN.nonce,
                 publish: isPublish ? '1' : '0',
+                regenerate: '0',
                 payload: payload
             }, function(resp){
                 setLoading($btn, false, '', label);
