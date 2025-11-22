@@ -89,6 +89,7 @@ EOD;
                 ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $userPrompt],
             ],
+            'response_format' => ['type' => 'json_object'],
             'max_tokens' => $maxTokens,
             'temperature' => $temperatura,
         ];
@@ -130,11 +131,15 @@ EOD;
 
         $decoded = json_decode($raw, true);
 
+        if (!is_array($decoded)) {
+            return new \WP_Error('invalid_response', 'Resposta não JSON da API: ' . $this->extrairTrechoSeguro($raw));
+        }
+
         if (isset($decoded['error'])) {
             return new \WP_Error('openai_error', 'OpenAI: ' . ($decoded['error']['message'] ?? 'Erro'));
         }
 
-        if (!is_array($decoded) || empty($decoded['choices'][0]['message']['content'])) {
+        if (empty($decoded['choices'][0]['message']['content'])) {
             return new \WP_Error('invalid_response', 'Resposta inválida.');
         }
 
@@ -145,9 +150,14 @@ EOD;
         $model = (string) ($decoded['model'] ?? '');
 
         $this->usageTracker->registrarUso($model, $promptTokens, $completionTokens);
-        $json = json_decode($this->sanitizarConteudoJson($content), true);
-        if ($json === null) {
-            return new \WP_Error('json_parse_error', 'JSON inválido.');
+        $json = json_decode($content, true);
+
+        if (!is_array($json)) {
+            $json = json_decode($this->sanitizarConteudoJson($content), true);
+        }
+
+        if (!is_array($json)) {
+            return new \WP_Error('json_parse_error', 'JSON inválido retornado pela API: ' . $this->extrairTrechoSeguro($content));
         }
 
         return $json;
@@ -169,51 +179,6 @@ EOD;
     private function sanitizarConteudoJson(string $content): string
     {
         $semCercas = preg_replace('/^```(?:json)?\s*|```$/mi', '', $content) ?? $content;
-        $limpo = trim($semCercas);
-
-        $matches = $this->capturarBlocosJson($limpo);
-        $melhorJson = $this->selecionarMenorJsonValido($matches);
-
-        if ($melhorJson !== null) {
-            return $melhorJson;
-        }
-
-        if ($matches !== []) {
-            return trim($matches[0]);
-        }
-
-        return $limpo;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function capturarBlocosJson(string $conteudo): array
-    {
-        $resultado = [];
-        preg_match_all('/\{[\s\S]*?\}|\[[\s\S]*?\]/', $conteudo, $resultado);
-
-        return array_map('trim', $resultado[0] ?? []);
-    }
-
-    /**
-     * @param list<string> $candidatos
-     */
-    private function selecionarMenorJsonValido(array $candidatos): ?string
-    {
-        $melhor = null;
-
-        foreach ($candidatos as $candidato) {
-            $decodificado = json_decode($candidato, true);
-            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodificado)) {
-                continue;
-            }
-
-            if ($melhor === null || strlen($candidato) < strlen($melhor)) {
-                $melhor = $candidato;
-            }
-        }
-
-        return $melhor;
+        return trim($semCercas);
     }
 }
