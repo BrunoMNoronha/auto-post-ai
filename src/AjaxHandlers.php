@@ -140,7 +140,11 @@ class AjaxHandlers
         }
 
         $postId = $this->postPublisher->gravarPost($data, $imgUrl, $publish);
-        if (!$postId) {
+        if (is_wp_error($postId)) {
+            wp_send_json_error('Erro ao salvar: ' . $postId->get_error_message());
+        }
+
+        if (!is_int($postId) || $postId <= 0) {
             wp_send_json_error('Erro ao salvar.');
         }
 
