@@ -11,3 +11,9 @@ O histórico de consumo agora é persistido na tabela `wp_auto_post_ai_logs`, cr
 - Obter totais agregados para exibição de resumos.
 
 Durante a ativação, o `Lifecycle` migra automaticamente os registros existentes salvos anteriormente na option `map_usage_history` para a nova tabela, garantindo compatibilidade.
+
+## Teste manual para respostas com array raiz
+
+1. Configure o prompt para solicitar uma resposta em JSON cujo root seja um array.
+2. Dispare uma geração e copie a saída completa retornada pelo modelo, incluindo eventuais mensagens adicionais.
+3. Confirme que a função `sanitizarConteudoJson` identifica o bloco `[...]` e que o JSON é decodificado corretamente antes da publicação.

@@ -171,10 +171,49 @@ EOD;
         $semCercas = preg_replace('/^```(?:json)?\s*|```$/mi', '', $content) ?? $content;
         $limpo = trim($semCercas);
 
-        if (preg_match('/\{[\s\S]*?\}/', $limpo, $matches)) {
+        $matches = $this->capturarBlocosJson($limpo);
+        $melhorJson = $this->selecionarMenorJsonValido($matches);
+
+        if ($melhorJson !== null) {
+            return $melhorJson;
+        }
+
+        if ($matches !== []) {
             return trim($matches[0]);
         }
 
         return $limpo;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function capturarBlocosJson(string $conteudo): array
+    {
+        $resultado = [];
+        preg_match_all('/\{[\s\S]*?\}|\[[\s\S]*?\]/', $conteudo, $resultado);
+
+        return array_map('trim', $resultado[0] ?? []);
+    }
+
+    /**
+     * @param list<string> $candidatos
+     */
+    private function selecionarMenorJsonValido(array $candidatos): ?string
+    {
+        $melhor = null;
+
+        foreach ($candidatos as $candidato) {
+            $decodificado = json_decode($candidato, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decodificado)) {
+                continue;
+            }
+
+            if ($melhor === null || strlen($candidato) < strlen($melhor)) {
+                $melhor = $candidato;
+            }
+        }
+
+        return $melhor;
     }
 }
