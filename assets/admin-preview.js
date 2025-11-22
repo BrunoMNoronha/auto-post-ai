@@ -149,6 +149,7 @@
                     $('#map-preview-tags').html(renderTags(d.tags || []));
                     $('#map-preview-image-info').text(d.image_preview_url || d.image_prompt || 'Nenhuma imagem gerada.');
                     $('#map-preview-config').text(`${idiomaSel} • ${estiloSel} • ${tomSel}`);
+                    $('#map-preview-config-bar').text(`${idiomaSel} • ${estiloSel} • ${tomSel}`);
 
                     var serpTitle = d.titulo || 'Prévia do artigo';
                     $('#map-preview-serp-title').text(serpTitle);

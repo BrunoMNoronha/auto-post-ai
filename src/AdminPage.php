@@ -80,83 +80,289 @@ class AdminPage
         }
         ?>
         <style>
-            :root { --map-primary: #6366f1; --map-bg: #f3f4f6; --map-card: #ffffff; --map-text: #1f2937; }
-            .map-wrap { max-width: 1200px; margin: 20px auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-            .map-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-            .map-title { font-size: 28px; font-weight: 700; color: #111; display: flex; align-items: center; gap: 10px; }
-            .map-badge { background: #e0e7ff; color: #4338ca; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
-            .map-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; align-items: start; }
-            @media(max-width: 768px) { .map-grid { grid-template-columns: 1fr; } }
-            .map-card { background: var(--map-card); border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; margin-bottom: 20px; }
-            .map-card h2 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; color: var(--map-text); }
-            .map-card.map-card-highlight { border: 1px solid #c7d2fe; box-shadow: 0 8px 30px -18px rgba(99,102,241,0.7); }
+            :root {
+                --map-primary: #5b67f1;
+                --map-primary-soft: #eef2ff;
+                --map-surface: #ffffff;
+                --map-muted: #6b7280;
+                --map-text: #111827;
+                --map-border: #e5e7eb;
+                --map-bg: #f7f8fb;
+            }
+
+            .map-wrap {
+                max-width: 1200px;
+                margin: 24px auto 40px;
+                font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                color: var(--map-text);
+            }
+
+            .map-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 28px;
+            }
+
+            .map-title {
+                font-size: 30px;
+                font-weight: 800;
+                color: #0b1324;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .map-badge {
+                background: linear-gradient(120deg, #eef2ff, #e0f2fe);
+                color: #4338ca;
+                padding: 6px 14px;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.03em;
+                text-transform: uppercase;
+            }
+
+            .map-grid {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 28px;
+                align-items: start;
+            }
+
+            @media(max-width: 900px) {
+                .map-grid { grid-template-columns: 1fr; }
+            }
+
+            .map-card {
+                background: var(--map-surface);
+                border-radius: 18px;
+                padding: 26px;
+                box-shadow: 0 20px 60px -40px rgba(15, 23, 42, 0.35);
+                border: 1px solid var(--map-border);
+                margin-bottom: 22px;
+            }
+
+            .map-card h2 {
+                margin: 0 0 20px;
+                font-size: 19px;
+                color: var(--map-text);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .map-card.map-card-highlight {
+                border: 1px solid #c7d2fe;
+                background: linear-gradient(180deg, rgba(99, 102, 241, 0.07), transparent);
+                box-shadow: 0 22px 60px -44px rgba(99, 102, 241, 0.6);
+            }
+
             .map-form-group { margin-bottom: 20px; }
-            .map-label { display: block; font-weight: 600; margin-bottom: 8px; color: #374151; }
-            .map-input, .map-select, .map-textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; color: #333; transition: border-color 0.2s; }
-            .map-input:focus, .map-textarea:focus { border-color: var(--map-primary); outline: none; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-            .map-helper { font-size: 12px; color: #6b7280; margin-top: 5px; }
-            .map-textarea { font-family: monospace; line-height: 1.4; font-size: 13px; }
-            .switch { position: relative; display: inline-block; width: 50px; height: 26px; vertical-align: middle; }
+
+            .map-label {
+                display: block;
+                font-weight: 700;
+                margin-bottom: 8px;
+                color: #1f2937;
+                letter-spacing: 0.01em;
+            }
+
+            .map-input,
+            .map-select,
+            .map-textarea {
+                width: 100%;
+                padding: 11px 13px;
+                border: 1px solid #d8dce7;
+                border-radius: 10px;
+                font-size: 14px;
+                color: #111827;
+                transition: border-color 0.2s, box-shadow 0.2s;
+                background: #fff;
+            }
+
+            .map-input:focus,
+            .map-textarea:focus,
+            .map-select:focus {
+                border-color: var(--map-primary);
+                outline: none;
+                box-shadow: 0 0 0 4px rgba(91, 103, 241, 0.12);
+            }
+
+            .map-helper {
+                font-size: 12px;
+                color: var(--map-muted);
+                margin-top: 6px;
+            }
+
+            .map-textarea {
+                font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+                line-height: 1.5;
+                font-size: 13px;
+            }
+
+            .switch { position: relative; display: inline-block; width: 52px; height: 28px; vertical-align: middle; }
             .switch input { opacity: 0; width: 0; height: 0; }
-            .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-            .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+            .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #c7ccd9; transition: .3s; border-radius: 34px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.12); }
+            .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
             input:checked + .slider { background-color: var(--map-primary); }
             input:checked + .slider:before { transform: translateX(24px); }
+
             .map-submit { margin-top: 20px; text-align: right; }
-            .button-primary { background: var(--map-primary) !important; border-color: var(--map-primary) !important; padding: 8px 20px !important; font-size: 15px !important; }
-            .map-accordion { border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; box-shadow: 0 6px 16px -12px rgba(0,0,0,0.35); margin-bottom: 16px; padding: 0 16px; }
-            .map-accordion__summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; list-style: none; padding: 14px 0; font-weight: 700; color: #111827; }
+            .button-primary { background: var(--map-primary) !important; border-color: var(--map-primary) !important; padding: 8px 20px !important; font-size: 15px !important; border-radius: 10px !important; box-shadow: 0 10px 30px -18px rgba(91,103,241,0.65) !important; }
+
+            .map-accordion {
+                border: 1px solid var(--map-border);
+                border-radius: 14px;
+                background: #fff;
+                box-shadow: 0 12px 34px -28px rgba(0,0,0,0.35);
+                margin-bottom: 16px;
+                padding: 0 16px;
+            }
+
+            .map-accordion__summary {
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 12px;
+                list-style: none;
+                padding: 14px 0;
+                font-weight: 700;
+                color: #111827;
+            }
+
             .map-accordion__summary::-webkit-details-marker { display: none; }
             .map-accordion__title { font-size: 16px; }
             .map-accordion__desc { font-size: 13px; color: #6b7280; font-weight: 600; }
             .map-accordion__content { border-top: 1px solid #e5e7eb; padding: 14px 0 8px; }
-            .map-accordion-stack { display: flex; flex-direction: column; }
-            .map-inline-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-            .map-compact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-            .api-status { margin-left: 10px; font-weight: 600; font-size: 13px; }
-            .status-ok { color: #10b981; }
-            .status-error { color: #ef4444; }
-            .map-table { width: 100%; border-collapse: collapse; }
-            .map-table th, .map-table td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-            .map-table th { background: #f9fafb; font-weight: 700; color: #374151; }
-            .map-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #eef2ff; color: #4338ca; font-weight: 600; font-size: 12px; }
-            .map-badge-muted { background: #f3f4f6; color: #4b5563; }
-            .map-inline-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-            .map-inline-form input[type="date"], .map-inline-form select { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
-            .map-preview-card { border: 1px solid #e5e7eb; box-shadow: 0 20px 45px -24px rgba(99,102,241,0.45), 0 8px 24px -20px rgba(0,0,0,0.35); position: relative; overflow: hidden; background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); }
-            .map-preview-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
-            .map-eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; color: #6b7280; margin: 0 0 4px; font-weight: 700; }
-            .map-preview-title { font-size: 20px; margin: 0; color: #111827; }
-            .map-preview-actions { display: flex; gap: 8px; align-items: center; }
-            .map-preview-actions .button { border-radius: 8px; }
-            .map-serp-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; background: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); margin-bottom: 16px; }
-            .map-serp-title { color: #1a0dab; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-            .map-serp-url { color: #0f9d58; font-size: 13px; margin-bottom: 2px; word-break: break-all; }
-            .map-serp-desc { color: #4b5563; font-size: 13px; line-height: 1.5; }
-            .map-tab-nav { display: flex; gap: 8px; margin-bottom: 12px; }
-            .map-tab-btn { padding: 8px 14px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; font-weight: 600; color: #4b5563; transition: all .2s ease; }
-            .map-tab-btn.is-active { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; box-shadow: 0 6px 12px -8px rgba(99,102,241,0.35); }
-            .map-tab-panel { display: none; }
+
+            .map-inline-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+            .map-inline-actions .button { margin-left: auto; }
+            .map-inline-form { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+            .map-inline-form select, .map-inline-form input[type=date] { min-width: 160px; }
+
+            .map-preview-shell { background: linear-gradient(135deg, #f6f7fb, #eef2ff); border-radius: 18px; padding: 18px; border: 1px solid #e5e7eb; box-shadow: inset 0 1px 0 rgba(255,255,255,0.8); }
+            .map-preview-card { border-radius: 18px; padding: 22px; background: #fff; box-shadow: 0 28px 70px -54px rgba(0,0,0,0.6); border: 1px solid #e5e7eb; }
+
+            .map-preview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+            .map-preview-title { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+            .map-preview-actions { display: flex; gap: 10px; align-items: center; }
+            .map-preview-actions .button { border-radius: 10px; padding: 7px 12px; }
+            .map-eyebrow { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: #6b7280; margin: 0 0 6px; font-weight: 800; }
+
+            .map-serp-card {
+                background: #fff;
+                border: 1px solid #dfe1e5;
+                border-radius: 14px;
+                padding: 14px 18px;
+                margin-bottom: 16px;
+                box-shadow: 0 14px 40px -34px rgba(0,0,0,0.4);
+            }
+
+            .map-serp-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+            .map-serp-favicon { width: 16px; height: 16px; border-radius: 4px; background: #5b67f1; box-shadow: 0 1px 2px rgba(0,0,0,0.22); }
+            .map-serp-url { color: #202124; font-size: 13px; margin: 0; }
+            .map-serp-breadcrumb { color: #5f6368; font-size: 12px; }
+            .map-serp-title { color: #1a0dab; font-size: 17px; line-height: 1.3; margin: 2px 0 4px; font-weight: 600; letter-spacing: -0.01em; }
+            .map-serp-desc { color: #4d5156; font-size: 13px; line-height: 1.6; margin: 0; }
+
+            .map-tab-nav {
+                display: inline-flex;
+                border-radius: 12px;
+                padding: 4px;
+                background: #f3f4f6;
+                gap: 4px;
+                border: 1px solid #e5e7eb;
+            }
+
+            .map-tab-btn {
+                padding: 9px 18px;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                font-weight: 700;
+                color: #6b7280;
+                transition: all 0.2s;
+                border-radius: 10px;
+            }
+
+            .map-tab-btn.is-active {
+                background: #fff;
+                color: #111827;
+                box-shadow: 0 8px 20px -16px rgba(0,0,0,0.45);
+                border: 1px solid #e5e7eb;
+            }
+
+            .map-tab-panel { display: none; margin-top: 18px; }
             .map-tab-panel.is-active { display: block; }
-            .map-article-card { border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; background: #fff; box-shadow: 0 8px 24px -18px rgba(0,0,0,0.4); }
-            .map-cover { position: relative; min-height: 160px; background: radial-gradient(circle at 20% 20%, #e0e7ff, #c7d2fe); display: flex; align-items: flex-end; padding: 18px; color: #1f2937; }
+
+            .map-article-card {
+                background: #fff;
+                border-radius: 16px;
+                overflow: hidden;
+                border: 1px solid #e5e7eb;
+                box-shadow: 0 20px 60px -46px rgba(0,0,0,0.55);
+            }
+
+            .map-cover {
+                background: linear-gradient(120deg, #eef2ff, #e0f2fe);
+                position: relative;
+                min-height: 200px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
             .map-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-            .map-cover-badge { background: rgba(255,255,255,0.85); padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; color: #4338ca; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 10px 30px -18px rgba(0,0,0,0.6); }
-            .map-article-body { padding: 20px; }
-            .map-article-body h1 { font-size: 24px; margin: 0 0 12px; line-height: 1.2; color: #111827; }
-            .map-article-body h2, .map-article-content h2 { font-size: 18px; margin: 18px 0 8px; color: #111827; }
-            .map-article-body h3, .map-article-content h3 { font-size: 16px; margin: 14px 0 6px; color: #111827; }
-            .map-article-body p, .map-article-content p { line-height: 1.7; color: #1f2937; margin: 0 0 12px; font-size: 14px; }
-            .map-article-body ul, .map-article-content ul { padding-left: 18px; margin: 12px 0; }
-            .map-article-body li, .map-article-content li { margin-bottom: 8px; line-height: 1.6; }
-            .map-article-body strong, .map-article-content strong { color: #111827; }
-            .map-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-            .map-meta-card { border: 1px dashed #d1d5db; border-radius: 12px; padding: 12px; background: #fff; }
-            .map-meta-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 4px; font-weight: 700; display: block; }
+
+            .map-cover-badge {
+                background: rgba(255,255,255,0.9);
+                padding: 7px 12px;
+                border-radius: 999px;
+                font-weight: 700;
+                font-size: 12px;
+                color: #4338ca;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                box-shadow: 0 16px 40px -30px rgba(0,0,0,0.65);
+            }
+
+            .map-article-body {
+                padding: 28px;
+                max-width: 760px;
+                margin: 0 auto;
+            }
+
+            .map-article-body h1 {
+                font-size: 26px;
+                margin: 0 0 12px;
+                line-height: 1.18;
+                letter-spacing: -0.01em;
+                color: #0f172a;
+            }
+
+            .map-article-body h2, .map-article-content h2 { font-size: 19px; margin: 22px 0 10px; color: #0f172a; }
+            .map-article-body h3, .map-article-content h3 { font-size: 17px; margin: 16px 0 8px; color: #111827; }
+            .map-article-body p, .map-article-content p { line-height: 1.82; color: #1f2937; margin: 0 0 14px; font-size: 15px; }
+            .map-article-body ul, .map-article-content ul { padding-left: 20px; margin: 14px 0; }
+            .map-article-body li, .map-article-content li { margin-bottom: 8px; line-height: 1.7; }
+            .map-article-body strong, .map-article-content strong { color: #0f172a; }
+
+            .map-article-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; color: #4b5563; font-size: 13px; }
+            .map-article-dot { width: 4px; height: 4px; background: #cbd5e1; border-radius: 50%; }
+            .map-article-chip { background: #eef2ff; color: #4338ca; padding: 6px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; }
+
+            .map-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+            .map-meta-card { border: 1px dashed #d1d5db; border-radius: 12px; padding: 12px; background: #fff; box-shadow: 0 8px 24px -22px rgba(0,0,0,0.25); }
+            .map-meta-label { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #6b7280; margin-bottom: 6px; font-weight: 800; display: block; }
             .map-meta-value { font-weight: 700; color: #111827; margin-bottom: 6px; }
-            .map-meta-note { font-size: 13px; color: #4b5563; margin: 0; }
-            .map-editor-box { margin-top: 14px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; background: #f9fafb; }
-            .map-editor-box textarea { width: 100%; min-height: 140px; font-family: Menlo, Monaco, Consolas, monospace; border-radius: 8px; border: 1px solid #d1d5db; padding: 10px; }
+            .map-meta-note { font-size: 13px; color: #4b5563; margin: 0; line-height: 1.5; }
+
+            .map-editor-box { margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: #f9fafb; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); }
+            .map-editor-box textarea { width: 100%; min-height: 160px; font-family: "JetBrains Mono", Menlo, Monaco, Consolas, monospace; border-radius: 10px; border: 1px solid #d1d5db; padding: 11px; }
             .map-editor-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
         </style>
         <?php
@@ -463,76 +669,83 @@ class AdminPage
 
                         <div class="map-card">
                             <h2>Pré-visualização</h2>
-                            <div id="map-preview-container" class="map-preview-card" style="display:none; margin-top:10px;">
-                                <div class="map-preview-header">
-                                    <div>
-                                        <p class="map-eyebrow">Painel de Publicação Profissional</p>
-                                        <h2 class="map-preview-title">Pré-visualização premium</h2>
-                                    </div>
-                                    <div class="map-preview-actions">
-                                        <button type="button" id="map-edit-content" class="button">Editar Conteúdo</button>
-                                        <button type="button" id="map-save-draft" class="button">Rascunho</button>
-                                        <button type="button" id="map-publish" class="button button-primary">Publicar</button>
-                                    </div>
-                                </div>
-                                <div class="map-serp-card" aria-label="Prévia Google SERP">
-                                    <div id="map-preview-serp-title" class="map-serp-title"></div>
-                                    <div id="map-preview-serp-url" class="map-serp-url"></div>
-                                    <div id="map-preview-serp-desc" class="map-serp-desc"></div>
-                                </div>
-                                <div class="map-tab-nav" role="tablist">
-                                    <button type="button" class="map-tab-btn is-active" data-tab="conteudo">Conteúdo</button>
-                                    <button type="button" class="map-tab-btn" data-tab="metadados">Metadados</button>
-                                </div>
-                                <div class="map-tab-panel is-active" data-tab="conteudo">
-                                    <div class="map-article-card">
-                                        <div id="map-preview-image" class="map-cover"></div>
-                                        <div class="map-article-body">
-                                            <h1 id="map-preview-title"></h1>
-                                            <div id="map-preview-content" class="map-article-content"></div>
+                            <div id="map-preview-container" class="map-preview-shell" style="display:none; margin-top:10px;">
+                                <div class="map-preview-card">
+                                    <div class="map-preview-header">
+                                        <div>
+                                            <p class="map-eyebrow">Painel editorial premium</p>
+                                            <h2 class="map-preview-title">Prévia pronta para produção</h2>
+                                        </div>
+                                        <div class="map-preview-actions">
+                                            <button type="button" id="map-edit-content" class="button">Editar Conteúdo</button>
+                                            <button type="button" id="map-save-draft" class="button">Rascunho</button>
+                                            <button type="button" id="map-publish" class="button button-primary">Publicar</button>
                                         </div>
                                     </div>
-                                    <div id="map-editor-box" class="map-editor-box" style="display:none;">
-                                        <label class="map-label" for="map-preview-editor">Ajuste manual do HTML</label>
-                                        <textarea id="map-preview-editor"></textarea>
-                                        <div class="map-editor-actions">
-                                            <button type="button" id="map-cancel-edit" class="button">Cancelar</button>
-                                            <button type="button" id="map-apply-html" class="button button-primary">Aplicar HTML</button>
+                                    <div class="map-serp-card" aria-label="Prévia Google SERP">
+                                        <div class="map-serp-header">
+                                            <span class="map-serp-favicon" aria-hidden="true"></span>
+                                            <div>
+                                                <div id="map-preview-serp-url" class="map-serp-url"></div>
+                                                <div class="map-serp-breadcrumb">Simulação de snippet orgânico</div>
+                                            </div>
+                                        </div>
+                                        <div id="map-preview-serp-title" class="map-serp-title"></div>
+                                        <p id="map-preview-serp-desc" class="map-serp-desc"></p>
+                                    </div>
+                                    <div class="map-tab-nav" role="tablist">
+                                        <button type="button" class="map-tab-btn is-active" data-tab="conteudo">Conteúdo</button>
+                                        <button type="button" class="map-tab-btn" data-tab="metadados">Metadados</button>
+                                    </div>
+                                    <div class="map-tab-panel is-active" data-tab="conteudo">
+                                        <div class="map-article-card">
+                                            <div id="map-preview-image" class="map-cover"></div>
+                                            <div class="map-article-body">
+                                                <div class="map-article-meta">
+                                                    <span class="map-article-chip">Pré-visualização</span>
+                                                    <span class="map-article-dot" aria-hidden="true"></span>
+                                                    <span id="map-preview-config-bar"></span>
+                                                </div>
+                                                <h1 id="map-preview-title"></h1>
+                                                <div id="map-preview-content" class="map-article-content"></div>
+                                            </div>
+                                        </div>
+                                        <div id="map-editor-box" class="map-editor-box" style="display:none;">
+                                            <label class="map-label" for="map-preview-editor">Ajuste manual do HTML</label>
+                                            <textarea id="map-preview-editor"></textarea>
+                                            <div class="map-editor-actions">
+                                                <button type="button" id="map-cancel-edit" class="button">Cancelar</button>
+                                                <button type="button" id="map-apply-html" class="button button-primary">Aplicar HTML</button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="map-tab-panel" data-tab="metadados">
-                                    <div class="map-meta-grid">
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">SEO</span>
-                                            <div id="map-preview-seo" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Prévia do snippet entregue pelo modelo.</p>
-                                        </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Tags sugeridas</span>
-                                            <div id="map-preview-tags"></div>
-                                            <p class="map-meta-note">Use como base para categorias e taxonomias.</p>
-                                        </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Imagem de destaque</span>
-                                            <div id="map-preview-image-info" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Prompt ou URL usado na geração visual.</p>
-                                        </div>
-                                        <div class="map-meta-card">
-                                            <span class="map-meta-label">Configuração</span>
-                                            <div id="map-preview-config" class="map-meta-value"></div>
-                                            <p class="map-meta-note">Idioma, estilo e tom aplicados.</p>
+                                    <div class="map-tab-panel" data-tab="metadados">
+                                        <div class="map-meta-grid">
+                                            <div class="map-meta-card">
+                                                <span class="map-meta-label">SEO</span>
+                                                <div id="map-preview-seo" class="map-meta-value"></div>
+                                                <p class="map-meta-note">Prévia do snippet entregue pelo modelo.</p>
+                                            </div>
+                                            <div class="map-meta-card">
+                                                <span class="map-meta-label">Tags sugeridas</span>
+                                                <div id="map-preview-tags"></div>
+                                                <p class="map-meta-note">Use como base para categorias e taxonomias.</p>
+                                            </div>
+                                            <div class="map-meta-card">
+                                                <span class="map-meta-label">Imagem de destaque</span>
+                                                <div id="map-preview-image-info" class="map-meta-value"></div>
+                                                <p class="map-meta-note">Prompt ou URL usado na geração visual.</p>
+                                            </div>
+                                            <div class="map-meta-card">
+                                                <span class="map-meta-label">Configuração</span>
+                                                <div id="map-preview-config" class="map-meta-value"></div>
+                                                <p class="map-meta-note">Idioma, estilo e tom aplicados.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p class="map-helper" style="margin-top:10px;">A pré-visualização aparece aqui assim que você gerar o conteúdo.</p>
                         </div>
-                    </div>
-
-                    <div class="map-sidebar">
-                        <div class="map-accordion-stack">
-                            <?php
                             $this->renderAccordionSection('map-accordion-modelo', '🤖 Opções do Modelo', 'Modelo, temperatura e prompt base', function () use ($modeloIa, $temperatura, $maxTokens, $systemPrompt, $requestTimeout): void {
                                 ?>
                                 <div class="map-compact-grid">
