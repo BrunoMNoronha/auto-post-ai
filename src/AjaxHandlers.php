@@ -76,6 +76,21 @@ class AjaxHandlers
             wp_send_json_error($data->get_error_message());
         }
 
+        $gerarImagemAuto = $this->optionsRepository->getOption('map_gerar_imagem_auto') === 'sim';
+        if ($gerarImagemAuto && is_array($data) && !empty($data['image_prompt'])) {
+            $imageResult = $this->imageGenerator->gerarImagem((string) $data['image_prompt']);
+
+            if (is_wp_error($imageResult)) {
+                error_log('Auto Post AI - Falha ao gerar imagem na prévia: ' . $imageResult->get_error_message());
+                $data['image_preview_error'] = $imageResult->get_error_message();
+                $data['image_preview_url'] = null;
+            } elseif (is_string($imageResult) && $imageResult !== '') {
+                $data['image_preview_url'] = $imageResult;
+            } else {
+                $data['image_preview_url'] = null;
+            }
+        }
+
         wp_send_json_success($data);
     }
 
