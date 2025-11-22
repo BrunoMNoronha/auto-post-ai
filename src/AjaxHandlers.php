@@ -116,6 +116,12 @@ class AjaxHandlers
         $imgUrl = false;
         if ($gerarImagem && !empty($data['image_prompt'])) {
             $imgUrl = $this->imageGenerator->gerarImagem((string) $data['image_prompt']);
+
+            if (is_wp_error($imgUrl)) {
+                error_log('Auto Post AI - Falha ao gerar imagem na prévia: ' . $imgUrl->get_error_message());
+
+                wp_send_json_error('Falha ao gerar imagem: ' . $imgUrl->get_error_message());
+            }
         }
 
         $postId = $this->postPublisher->gravarPost($data, $imgUrl, $publish);

@@ -13,7 +13,7 @@ class ImageGenerator
     ) {
     }
 
-    public function gerarImagem(string $prompt): string|false
+    public function gerarImagem(string $prompt): string|false|\WP_Error
     {
         $apiKey = $this->apiKeyProvider->getApiKey();
         if ($apiKey === '' || $prompt === '') {
@@ -45,10 +45,31 @@ class ImageGenerator
         ]);
 
         if (is_wp_error($response)) {
-            return false;
+            error_log('Auto Post AI - Erro ao chamar API de imagem: ' . $response->get_error_message());
+
+            return $response;
         }
 
+        $responseCode = wp_remote_retrieve_response_code($response);
         $body = json_decode((string) wp_remote_retrieve_body($response), true);
+
+        if ($responseCode !== 200) {
+            $mensagemErro = 'Auto Post AI - Erro na API de imagem. Código: ' . $responseCode;
+            if (is_array($body) && isset($body['error']['message'])) {
+                $mensagemErro .= ' - ' . (string) $body['error']['message'];
+            }
+
+            error_log($mensagemErro);
+
+            return new \WP_Error((string) $responseCode, $mensagemErro, $body['error'] ?? []);
+        }
+
+        if (is_array($body) && isset($body['error'])) {
+            $mensagemErro = 'Auto Post AI - Erro na API de imagem: ' . (string) ($body['error']['message'] ?? 'Desconhecido');
+            error_log($mensagemErro);
+
+            return new \WP_Error('api_error', $mensagemErro, $body['error']);
+        }
         if (isset($body['data'][0]['url'])) {
             return (string) $body['data'][0]['url'];
         }
