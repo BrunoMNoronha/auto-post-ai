@@ -1,6 +1,10 @@
 (function($){
     $(document).ready(function(){
-        
+
+        $('#map-generate-preview').attr('title', 'Pré-visualiza o conteúdo manualmente sem acionar a automação.');
+        $('#map-save-draft').attr('title', 'Guarda o conteúdo gerado como rascunho para revisão.');
+        $('#map-publish').attr('title', 'Publica imediatamente o conteúdo aprovado.');
+
         // --- 1. Lógica do Teste de API ---
         $('#map-test-api').on('click', function(){
             var $btn = $(this);

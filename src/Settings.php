@@ -31,6 +31,9 @@ class Settings
         register_setting($group, 'map_tom', 'sanitize_text_field');
         register_setting($group, 'map_max_tokens', ['sanitize_callback' => [$this, 'sanitizarMaxTokens']]);
         register_setting($group, 'map_gerar_imagem_auto', ['sanitize_callback' => [$this, 'sanitizarCheckbox']]);
+        register_setting($group, 'map_auto_publicar', ['sanitize_callback' => [$this, 'sanitizarCheckbox']]);
+        register_setting($group, 'map_auto_geracao', ['sanitize_callback' => [$this, 'sanitizarCheckbox']]);
+        register_setting($group, 'map_frequencia_cron', ['sanitize_callback' => [$this, 'sanitizarFrequenciaCron']]);
     }
 
     public function sanitizarApiKey(string $input): string
@@ -69,5 +72,13 @@ class Settings
     public function sanitizarCheckbox(mixed $value): string
     {
         return ($value === 'sim' || $value === '1' || $value === 1 || $value === true) ? 'sim' : 'nao';
+    }
+
+    public function sanitizarFrequenciaCron(mixed $value): string
+    {
+        $permitidos = ['diario', 'duas_vezes_dia', 'horario'];
+        $valor = is_string($value) ? $value : '';
+
+        return in_array($valor, $permitidos, true) ? $valor : 'diario';
     }
 }

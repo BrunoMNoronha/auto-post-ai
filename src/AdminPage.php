@@ -10,6 +10,16 @@ class AdminPage
     {
     }
 
+    private function isPluginScreen(?\WP_Screen $screen): bool
+    {
+        $screenIds = [
+            'toplevel_page_auto-post-ai',
+            'auto-post-ai_page_auto-post-ai-automacao',
+        ];
+
+        return $screen !== null && in_array($screen->id, $screenIds, true);
+    }
+
     public function adicionarMenuPrincipal(): void
     {
         add_menu_page(
@@ -21,12 +31,21 @@ class AdminPage
             'dashicons-superhero',
             20
         );
+
+        add_submenu_page(
+            'auto-post-ai',
+            'Automação',
+            'Automação',
+            'manage_options',
+            'auto-post-ai-automacao',
+            [$this, 'renderizarAutomacao']
+        );
     }
 
     public function estilosPersonalizados(): void
     {
         $screen = get_current_screen();
-        if ($screen === null || $screen->id !== 'toplevel_page_auto-post-ai') {
+        if (!$this->isPluginScreen($screen)) {
             return;
         }
         ?>
@@ -64,7 +83,7 @@ class AdminPage
     public function enqueueAdminAssets(string $hook): void
     {
         $screen = get_current_screen();
-        if ($screen === null || $screen->id !== 'toplevel_page_auto-post-ai') {
+        if (!$this->isPluginScreen($screen)) {
             return;
         }
 
@@ -77,6 +96,95 @@ class AdminPage
             'action_publish' => 'map_publicar_from_preview',
             'action_test_api' => 'map_testar_conexao',
         ]);
+    }
+
+    public function renderizarAutomacao(): void
+    {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+
+        $autoGeracao = $this->optionsRepository->getOption('map_auto_geracao', 'nao');
+        $frequencia = $this->optionsRepository->getOption('map_frequencia_cron', 'diario');
+        $autoPublicar = $this->optionsRepository->getOption('map_auto_publicar', 'nao');
+        $frequencias = [
+            'diario' => 'Diário',
+            'duas_vezes_dia' => '2x por dia',
+            'horario' => 'Horário',
+        ];
+        ?>
+        <div class="wrap map-wrap">
+            <div class="map-header">
+                <div class="map-title">
+                    <span class="dashicons dashicons-superhero" style="font-size:32px; width:32px; height:32px;"></span>
+                    Automação do Auto Post AI <span class="map-badge">Agendamentos</span>
+                </div>
+            </div>
+
+            <form action="options.php" method="post">
+                <?php settings_fields($this->optionsRepository->getOptionGroup()); ?>
+                <div class="map-grid" style="grid-template-columns: 2fr 1fr;">
+                    <div class="map-main">
+                        <div class="map-card">
+                            <h2>⚡ Executar automação</h2>
+                            <div class="map-form-group" style="display:flex; align-items:center; justify-content:space-between;">
+                                <div>
+                                    <label class="map-label" style="margin:0;">Ativar auto-geração</label>
+                                    <p class="map-helper">Habilita o agendamento recorrente de novos posts.</p>
+                                </div>
+                                <div>
+                                    <input type="hidden" name="map_auto_geracao" value="nao" />
+                                    <label class="switch" title="Liga ou desliga o robô automático.">
+                                        <input type="checkbox" name="map_auto_geracao" value="sim" <?php checked($autoGeracao, 'sim'); ?> />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="map-card">
+                            <h2>⏱️ Agenda</h2>
+                            <div class="map-form-group">
+                                <label class="map-label" for="map_frequencia_cron">Periodicidade</label>
+                                <select id="map_frequencia_cron" name="map_frequencia_cron" class="map-select" title="Frequência de execução do cron.">
+                                    <?php foreach ($frequencias as $valor => $label) : ?>
+                                        <option value="<?php echo esc_attr($valor); ?>" <?php selected($frequencia, $valor); ?>><?php echo esc_html($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="map-helper">Diário = 1x/dia | 2x por dia = a cada 12h | Horário = a cada 60 minutos.</p>
+                            </div>
+                        </div>
+
+                        <div class="map-card">
+                            <h2>🗂️ Destino das publicações</h2>
+                            <div class="map-form-group">
+                                <label class="map-label" for="map_auto_publicar">Modo de saída</label>
+                                <select id="map_auto_publicar" name="map_auto_publicar" class="map-select" title="Define se o conteúdo cai direto como publicação ou rascunho.">
+                                    <option value="nao" <?php selected($autoPublicar, 'nao'); ?>>Salvar como rascunho</option>
+                                    <option value="sim" <?php selected($autoPublicar, 'sim'); ?>>Publicar automaticamente</option>
+                                </select>
+                                <p class="map-helper">Publicações automáticas continuam a usar imagem gerada quando configurada.</p>
+                            </div>
+                        </div>
+
+                        <div class="map-submit">
+                            <?php submit_button('Guardar Alterações', 'primary', 'submit', false); ?>
+                        </div>
+                    </div>
+                    <div class="map-sidebar">
+                        <div class="map-card">
+                            <h2>💡 Dicas rápidas</h2>
+                            <ul class="map-helper" style="padding-left:18px; line-height:1.6; margin:0;">
+                                <li>Use <strong>Horário</strong> apenas se sua hospedagem suportar WP-Cron frequente.</li>
+                                <li>Combine com o menu principal para ajustar tema, tom e imagens.</li>
+                                <li>Alterar a frequência reprograma o evento no próximo salvamento.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <?php
     }
 
     public function renderizarPagina(): void
